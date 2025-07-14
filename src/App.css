@@ -35,3 +35,62 @@ body {
   vertical-align: middle;
   transform: scale(1.1);
 }
+.markdown-body ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  color: #e5e7eb; /* Tailwind's gray-200 */
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.markdown-body ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  color: #e5e7eb;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.markdown-body li {
+  margin-bottom: 0.5rem;
+}
+
+.markdown-alert {
+    padding: 1em;
+    border-left: 0.25rem solid;
+    padding-bottom: 0px;
+    padding-top: 0px;
+    border-color: var(--border-color);
+}
+
+.markdown-alert > span {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    color: var(--border-color);
+}
+
+.markdown-alert .markdown-alert-icon {
+    margin-right: 0.5em;
+    fill: var(--border-color);
+}
+
+.markdown-alert.note {
+    --border-color: #539BF5;
+}
+
+.markdown-alert.warning {
+    --border-color: #C69026;
+}
+
+.markdown-alert.important {
+    --border-color: #986EE2;
+}
+
+.markdown-alert.caution {
+    --border-color: #E5534B;
+}
+
+.markdown-alert.tip {
+    --border-color: #57AB5A;
+}

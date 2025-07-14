@@ -1,8 +1,8 @@
 import MarkdownIt from 'markdown-it';
-import markdownItKatex from 'markdown-it-katex';
 import taskLists from 'markdown-it-task-lists';
 import hljs from 'highlight.js';
 import markdownItKatex from '@vscode/markdown-it-katex'
+import { alertPlugin } from 'markdown-it-github-alert'
 
 import 'highlight.js/styles/atom-one-dark.css';
 
@@ -11,18 +11,20 @@ const md = new MarkdownIt({
   breaks: true,
   linkify: true,
   typographer: true,
+  xhtmlOut: true,
   highlight: function (str, lang) {
     if (lang && hljs.getLanguage(lang)) {
       try {
-        return `<pre class="hljs"><code>${hljs.highlight(str, { language: lang }).value}</code></pre>`;
-      } catch (_) {}
+        return hljs.highlight(str, { language: lang }).value;
+      } catch (__) {}
     }
-    return `<pre class="hljs"><code>${md.utils.escapeHtml(str)}</code></pre>`;
-  },
+
+    return ''; // use external default escaping
+  }
 })
-  .use(markdownItKatex)
   .use(taskLists, { enabled: true })
-  .use(markdownItKatex);
+  .use(markdownItKatex)
+  .use(alertPlugin);
 
 
 // Simple cache implementation
