@@ -33,16 +33,10 @@ const CACHE_SIZE = 200;
 
 export function parseMarkdown(content) {
   if (!content) return '';
-  
-  // Check cache first
   if (cache.has(content)) {
     return cache.get(content);
   }
-
-  // Parse the markdown
   const result = md.render(content);
-
-  // Cache the result
   if (cache.size >= CACHE_SIZE) {
     cache.clear();
   }
@@ -50,6 +44,4 @@ export function parseMarkdown(content) {
 
   return result;
 }
-
-// Export as default for flexible importing
 export default parseMarkdown;
