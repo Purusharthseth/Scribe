@@ -1,12 +1,11 @@
 @import "tailwindcss";
-/* Base Styles */
 
 body {
   margin: 0;
   font-family: 'Inter', sans-serif;
   background-color: #1e1e1e;
   color: #fff;
-  overflow: hidden; /* Prevent body scrolling */
+  overflow: hidden;
 }
 
 /* Layout Styles */
@@ -17,51 +16,35 @@ body {
   margin: 0;
   padding: 0;
 }
-/* Editor Styles */
+
 .editor {
-  flex: 1; /* Take up available space */
-  padding: 0; /* Remove padding */
-  overflow: hidden; /* Contain CodeMirror */
+  flex: 1;
+  padding: 0;
+  overflow: hidden;
   border-right: 1px solid #333;
   background-color: #1e1e1e;
   display: flex;
   flex-direction: column;
 }
 
-/* CodeMirror wrapper */
 .editor > div {
   flex: 1;
   overflow: auto;
   padding: 20px;
 }
 
-/* Make CodeMirror fill its container */
 .cm-editor {
   height: 100% !important;
 }
 
-/* Preview Styles */
-.preview {
-  flex: 1;
-  padding: 16px; /* Keep some padding but adjust as needed */
-  overflow: auto;
-  background-color: #282c34;
-  margin: 0; /* Explicitly remove margins */
-  width: 100%; /* Force full width */
-}
-
-
-/* Full-width preview when editor is hidden */
 .container.preview-only .preview {
   flex: 1 0 100%;
 }
 
-/* CodeMirror Gutters */
 .cm-gutters {
   display: none !important;
 }
 
-/* Checkboxes */
 .markdown-body input[type="checkbox"] {
   margin: 0 0.35em 0.25em 0;
   vertical-align: middle;
@@ -69,33 +52,259 @@ body {
   cursor: pointer;
 }
 
+.preview {
+  flex: 1;
+  width: 100%;
+  margin: 0;
+  background: transparent !important;
+  color: #e5e7eb;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  min-height: 100%;
+}
+
+.markdown-body h1 {
+  color: #3b82f6;
+  font-size: 2.7rem;
+  font-weight: 800;
+  margin-bottom: 0.7em;
+  border-bottom: 2px solid #2563eb;
+  padding-bottom: 0.2em;
+  letter-spacing: -0.02em;
+}
+
+.markdown-body h2 {
+  color: #2563eb;
+  font-size: 2.4rem;
+  font-weight: 700;
+  margin-top: 2em;
+  margin-bottom: 0.5em;
+  border-bottom: 1px solid #2563eb;
+  padding-bottom: 0.15em;
+}
+
+.markdown-body h3 {
+  color: #1d4ed8;
+  font-size: 2.1rem;
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.4em;
+}
+
+.markdown-body h4 {
+  color: #2563eb;
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-top: 1.2em;
+  margin-bottom: 0.3em;
+}
+
+.markdown-body h5 {
+  color: #60a5fa;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 1em;
+  margin-bottom: 0.2em;
+}
+
+.markdown-body h6 {
+  color: #93c5fd;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-top: 0.8em;
+  margin-bottom: 0.2em;
+}
+
+.markdown-body p {
+  color: #e5e7eb;
+  margin-bottom: 1em;
+  line-height: 1.7;
+  font-size: 1rem;
+  font-weight: 400; /* Make paragraphs lighter */
+}
+
 /* Lists */
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.5rem;
+  color: #e5e7eb;
+  font-size: 1rem;
+  line-height: 1.6;
+}
 .markdown-body ul {
   list-style-type: disc;
-  padding-left: 1.5rem;
-  color: #e5e7eb;
-  font-size: 1rem;
-  line-height: 1.6;
+  list-style-position: inside;
 }
-
+.markdown-body ul > li::marker {
+  color: #3b82f6;
+}
 .markdown-body ol {
   list-style-type: decimal;
-  padding-left: 1.5rem;
-  color: #e5e7eb;
-  font-size: 1rem;
-  line-height: 1.6;
+  list-style-position: inside;
 }
-
 .markdown-body li {
   margin-bottom: 0.5rem;
 }
 
-/* Alerts (keep your existing styles) */
-.markdown-alert {
-  padding: 1em;
-  border-left: 0.25rem solid;
-  padding-bottom: 0;
-  padding-top: 0;
-  border-color: var(--border-color);
+/* Blockquotes */
+.markdown-body blockquote {
+  border-left: 4px solid #2563eb;
+  background: #23232a;
+  color: #a1a1aa;
+  padding: 0.75em 1em;
+  margin: 1em 0;
+  border-radius: 0.5em;
+  font-style: italic;
 }
-/* ... rest of your alert styles ... */
+
+/* Code blocks */
+.markdown-body pre,
+.markdown-body pre code {
+  background: #18181b;
+  border-radius: 0.4em;
+  padding: 1em;
+  font-family: 'JetBrains Mono', 'Fira Mono', 'Menlo', monospace;
+  font-size: 0.98em;
+  color: inherit; /* No special color for code blocks */
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+/* Inline code */
+.markdown-body p code,
+.markdown-body li code,
+.markdown-body table code,
+.markdown-body blockquote code {
+  background: #23232a;
+  color: #60a5fa; /* Blue for inline code */
+  padding: 0.15em 0.4em;
+  border-radius: 0.3em;
+  font-size: 0.98em;
+  font-family: 'JetBrains Mono', 'Fira Mono', 'Menlo', monospace;
+}
+
+/* Bold/Strong */
+.markdown-body b,
+.markdown-body strong {
+  font-weight: 800;
+  color: #3b82f6; /* Bright blue for bold */
+  background: none;
+  letter-spacing: 0.01em;
+}
+
+/* Italic/Emphasis */
+.markdown-body i,
+.markdown-body em {
+  font-style: italic;
+  color: #93c5fd; /* Even lighter blue for italic */
+  background: none;
+  letter-spacing: 0.01em;
+}
+
+/* Links */
+.markdown-body a {
+  color: #2563eb;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.markdown-body a:hover {
+  color: #1e40af;
+}
+
+/* Tables */
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  background: #23232a;
+}
+
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid #23232a;
+  padding: 0.5em 1em;
+}
+
+.markdown-body th {
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 700;
+}
+
+/* Images */
+.markdown-body img {
+  max-width: 100%;
+  border-radius: 0.5em;
+  margin: 1em 0;
+  box-shadow: 0 2px 16px 0 #0003;
+}
+
+/* Focus ring */
+.markdown-body :focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 0.3em;
+}
+
+/* Alerts */
+.markdown-alert {
+  gap: 0.75em;
+  padding: 1em 1.25em;
+  padding-bottom: 0.1rem;
+  margin: 1.5em 0;
+  border-left: 4px solid var(--border-color, #3b82f6);
+  background: #18181b;
+  color: #e5e7eb;
+  border-radius: 0.5em;
+  box-shadow: 0 2px 16px 0 #0003;
+  font-size: 1rem;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  transition: border-color 0.2s, background 0.2s;
+}
+.markdown-alert > span {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    color: var(--border-color);
+     color: inherit; /* Use normal text color */
+}
+
+.markdown-alert .markdown-alert-icon {
+  margin-right: 0.5em;
+  color: var(--border-color, #3b82f6);
+  fill: var(--border-color, #3b82f6);
+  flex-shrink: 0;
+  width: 1.3em;
+  height: 1.3em;
+}
+.markdown-alert .markdown-alert-label {
+  font-weight: 700;
+  color: inherit;
+  margin-right: 0.5em;
+}
+
+
+.markdown-alert.note {
+  --border-color: #539BF5;
+  background: #181f2a;
+}
+
+.markdown-alert.warning {
+  --border-color: #C69026;
+  background: #2a2118;
+}
+
+.markdown-alert.important {
+  --border-color: #986EE2;
+  background: #21182a;
+}
+
+.markdown-alert.caution {
+  --border-color: #E5534B;
+  background: #2a1a18;
+}
+
+.markdown-alert.tip {
+  --border-color: #57AB5A;
+  background: #182a1a;
+}

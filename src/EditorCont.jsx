@@ -69,7 +69,7 @@ The text is parsed in Markdown if you don't know how to write it click on help o
       )}
       {editorWidth > 0 && editorWidth < 100 && (
         <div
-          className="w-2 flex items-center justify-center cursor-col-resize bg-[#1e1e1e]"
+          className="w-2 flex items-center justify-center cursor-col-resize bg-gray-700 hover:bg-blue-800 transition-colors"
           onMouseDown={handleMouseDown}
         >
         </div>
@@ -102,7 +102,7 @@ The text is parsed in Markdown if you don't know how to write it click on help o
     </Tooltip.Provider>
 
       <div 
-        className={`h-full overflow-auto bg-[#282c34] ${editorWidth === 0 ? 'px-44 pt-7' : 'px-8 pt-5'}`}
+        className={`h-full overflow-auto ${editorWidth === 0 ? 'px-44 pt-7' : 'px-8 pt-5'} bg-gradient-to-br from-[#18181b] to-[#23232a]`}
         style={{ width: editorWidth === 0 ? '100%' : `${100 - editorWidth}%` }}
       >
         <Preview markdownText={markdownText} setMarkdownText={setMarkdownText} />
