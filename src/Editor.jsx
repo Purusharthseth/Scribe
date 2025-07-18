@@ -4,20 +4,15 @@ import { markdown } from '@codemirror/lang-markdown';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { keymap } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
-import throttle from './utils/throttle';
-
+import { Prec } from '@codemirror/state';
+import markdownCustomKeys from './utils/markdown-commands.js';
+const ICmd = markdownCustomKeys.find(cmd => cmd.key === "Mod-i");
 function Editor({ markdownText, setMarkdownText }) {
   const editor = useRef(null);
   const editorView = useRef(null);
 
   useEffect(() => {
     if (editor.current && !editorView.current) {
-        
-      const throttledUpdate = throttle((v) => {
-        const text = v.state.doc.toString();
-        if( markdownText!=text) setMarkdownText(text);
-      }, 200);
-
       editorView.current = new EditorView({
         doc: markdownText,
         selection: {
@@ -27,27 +22,49 @@ function Editor({ markdownText, setMarkdownText }) {
           basicSetup,
           markdown(),
           oneDark,
-          keymap.of([indentWithTab]),
+          Prec.highest(
+            keymap.of([
+              {
+                key: "Mod-i",
+                run: ICmd?.run || (() => false),
+                preventDefault: true
+              }
+            ])
+          ),
+          keymap.of([indentWithTab, ...markdownCustomKeys]),
           EditorView.lineWrapping,
           EditorView.updateListener.of((v) => {
-            if (v.docChanged) throttledUpdate(v);
+            if (v.docChanged) {
+              const text = v.state.doc.toString();
+              if (text !== markdownText) setMarkdownText(text);
+              if (v.selectionSet) {
+                v.view.dispatch({
+                  effects: EditorView.scrollIntoView(v.state.selection.main.from, {
+                    y: "center",
+                  })
+                });
+              }
+            }
           }),
         ],
-        parent: editor.current, //this is where codemirror renders.
+        parent: editor.current,
       });
     }
   }, []);
+  
 
   useEffect(() => {
-    if (editorView.current && markdownText!=editorView.current.state.doc.toString()) {
-      editorView.current.dispatch({
-        changes: {
-          from: 0,
-          to: editorView.current.state.doc.length,
-          insert: markdownText,
-        },
-      });
-      console.log("editor changed by markdown.")
+    if (editorView.current) {
+      const currentDoc = editorView.current.state.doc.toString();
+      if (markdownText !== currentDoc) {
+        editorView.current.dispatch({
+          changes: {
+            from: 0,
+            to: currentDoc.length,
+            insert: markdownText,
+          },
+        });
+      }
     }
   }, [markdownText]);
 

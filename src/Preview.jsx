@@ -1,5 +1,5 @@
 // Preview.jsx
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import parseMarkdown from './lib/markdown';
 
 function Preview({ markdownText, setMarkdownText }) {
@@ -43,4 +43,4 @@ function Preview({ markdownText, setMarkdownText }) {
   );
 }
 
-export default Preview;
+export default React.memo(Preview);

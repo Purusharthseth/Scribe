@@ -1,44 +1,79 @@
 @import "tailwindcss";
+/* Base Styles */
 
 body {
   margin: 0;
-  font-family: sans-serif;
+  font-family: 'Inter', sans-serif;
   background-color: #1e1e1e;
   color: #fff;
+  overflow: hidden; /* Prevent body scrolling */
 }
 
+/* Layout Styles */
 .container {
   display: flex;
   height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
 }
-
-.editor, .preview {
-  width: 50%;
-  padding: 16px;
-  overflow-y: auto;
-  box-sizing: border-box;
-}
-
+/* Editor Styles */
 .editor {
+  flex: 1; /* Take up available space */
+  padding: 0; /* Remove padding */
+  overflow: hidden; /* Contain CodeMirror */
   border-right: 1px solid #333;
+  background-color: #1e1e1e;
+  display: flex;
+  flex-direction: column;
 }
 
-.preview {
-  background-color: #282c34;
+/* CodeMirror wrapper */
+.editor > div {
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
 }
+
+/* Make CodeMirror fill its container */
+.cm-editor {
+  height: 100% !important;
+}
+
+/* Preview Styles */
+.preview {
+  flex: 1;
+  padding: 16px; /* Keep some padding but adjust as needed */
+  overflow: auto;
+  background-color: #282c34;
+  margin: 0; /* Explicitly remove margins */
+  width: 100%; /* Force full width */
+}
+
+
+/* Full-width preview when editor is hidden */
+.container.preview-only .preview {
+  flex: 1 0 100%;
+}
+
+/* CodeMirror Gutters */
 .cm-gutters {
   display: none !important;
 }
 
+/* Checkboxes */
 .markdown-body input[type="checkbox"] {
   margin: 0 0.35em 0.25em 0;
   vertical-align: middle;
   transform: scale(1.1);
+  cursor: pointer;
 }
+
+/* Lists */
 .markdown-body ul {
   list-style-type: disc;
   padding-left: 1.5rem;
-  color: #e5e7eb; /* Tailwind's gray-200 */
+  color: #e5e7eb;
   font-size: 1rem;
   line-height: 1.6;
 }
@@ -55,42 +90,12 @@ body {
   margin-bottom: 0.5rem;
 }
 
+/* Alerts (keep your existing styles) */
 .markdown-alert {
-    padding: 1em;
-    border-left: 0.25rem solid;
-    padding-bottom: 0px;
-    padding-top: 0px;
-    border-color: var(--border-color);
+  padding: 1em;
+  border-left: 0.25rem solid;
+  padding-bottom: 0;
+  padding-top: 0;
+  border-color: var(--border-color);
 }
-
-.markdown-alert > span {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    color: var(--border-color);
-}
-
-.markdown-alert .markdown-alert-icon {
-    margin-right: 0.5em;
-    fill: var(--border-color);
-}
-
-.markdown-alert.note {
-    --border-color: #539BF5;
-}
-
-.markdown-alert.warning {
-    --border-color: #C69026;
-}
-
-.markdown-alert.important {
-    --border-color: #986EE2;
-}
-
-.markdown-alert.caution {
-    --border-color: #E5534B;
-}
-
-.markdown-alert.tip {
-    --border-color: #57AB5A;
-}
+/* ... rest of your alert styles ... */
