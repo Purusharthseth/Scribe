@@ -37,7 +37,7 @@ function Preview({ markdownText, setMarkdownText }) {
 
   return (
     <div
-      className="preview markdown-body"
+      className="preview markdown-body h-screen flex-1"
       dangerouslySetInnerHTML={{ __html: parseMarkdown(markdownText) }}
     />
   );

@@ -55,11 +55,11 @@ The text is parsed in Markdown if you don't know how to write it click on help o
   return (
     <div 
       ref={containerRef}
-      className="flex h-screen w-screen bg-[#1e1e1e] select-none"
+      className="flex w-full h-full bg-gradient-to-br from-[#18181b] to-[#23232a] select-none"
     >
       {editorWidth > 0 && (
         <div 
-          className="h-full overflow-hidden bg-[#1e1e1e] flex flex-col"
+          className="h-full overflow-hidden flex flex-col"
           style={{ width: `${editorWidth}%` }}
         >
           <div className="flex-1 flex flex-col h-full">
@@ -69,7 +69,7 @@ The text is parsed in Markdown if you don't know how to write it click on help o
       )}
       {editorWidth > 0 && editorWidth < 100 && (
         <div
-          className="w-2 flex items-center justify-center cursor-col-resize bg-gray-700 hover:bg-blue-800 transition-colors"
+          className="w-0.5 flex items-center justify-center cursor-col-resize bg-gray-700 hover:bg-blue-800 transition-colors"
           onMouseDown={handleMouseDown}
         >
         </div>
@@ -91,7 +91,7 @@ The text is parsed in Markdown if you don't know how to write it click on help o
         <Tooltip.Portal>
           <Tooltip.Content
             className="px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded shadow-lg select-none"
-            side="bottom"  // Changed from "left" to "bottom"
+            side="bottom"
             sideOffset={5}
           >
             {editorWidth === 0 ? "Show editor" : "Hide editor"}
@@ -102,7 +102,7 @@ The text is parsed in Markdown if you don't know how to write it click on help o
     </Tooltip.Provider>
 
       <div 
-        className={`h-full overflow-auto ${editorWidth === 0 ? 'px-44 pt-7' : 'px-8 pt-5'} bg-gradient-to-br from-[#18181b] to-[#23232a]`}
+        className={`h-full overflow-auto ${editorWidth === 0 ? 'px-44 pt-7' : 'px-8 pt-5'} `}
         style={{ width: editorWidth === 0 ? '100%' : `${100 - editorWidth}%` }}
       >
         <Preview markdownText={markdownText} setMarkdownText={setMarkdownText} />

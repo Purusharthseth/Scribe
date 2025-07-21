@@ -3,12 +3,9 @@
 body {
   margin: 0;
   font-family: 'Inter', sans-serif;
-  background-color: #1e1e1e;
   color: #fff;
   overflow: hidden;
 }
-
-/* Layout Styles */
 .container {
   display: flex;
   height: 100vh;
@@ -22,7 +19,6 @@ body {
   padding: 0;
   overflow: hidden;
   border-right: 1px solid #333;
-  background-color: #1e1e1e;
   display: flex;
   flex-direction: column;
 }
@@ -40,9 +36,11 @@ body {
 .container.preview-only .preview {
   flex: 1 0 100%;
 }
-
 .cm-gutters {
   display: none !important;
+}
+&{
+   background: "linear-gradient(to bottom right, #18181b, #23232a)"
 }
 
 .markdown-body input[type="checkbox"] {
