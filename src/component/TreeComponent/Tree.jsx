@@ -48,6 +48,25 @@ const files = [
   },
 ];
 
+// Helper to find all ancestor ids of a node
+function findAllAncestorIds(data, targetId) {
+  let res = [];
+  function dfs(nodes, ancestors) {
+    for (let node of nodes) {
+      if (node.id === targetId) {
+        res = [...ancestors]; // return ancestors only, not including targetId
+        return true;
+      }
+      if (node.isFolder && node.children) {
+        if (dfs(node.children, [...ancestors, node.id])) return true;
+      }
+    }
+    return false;
+  }
+  dfs(data, []);
+  return res;
+}
+
 function Tree() {
   const [data, setData] = useState(files);
   const [expandedIds, setExpandedIds] = useState(new Set());
@@ -70,6 +89,7 @@ function Tree() {
     const DFS = (curr) => {
       for (let node of curr) {
         if (node.id === parentId) {
+          node.children = node.children || [];
           node.children.push(NODE);
           return true;
         }
@@ -80,10 +100,19 @@ function Tree() {
     };
     DFS(temp);
     setData(temp);
+
+    // Expand all ancestors and the parent folder
+    const ancestorIds = findAllAncestorIds(data, parentId);
+    setExpandedIds((prev) => {
+      const newSet = new Set(prev);
+      ancestorIds.forEach((id) => newSet.add(id));
+      newSet.add(parentId);
+      return newSet;
+    });
   };
 
   const deleteNode = (nodeId) => {
-    if(selectedId=== nodeId) {
+    if (selectedId === nodeId) {
       setSelectedId(null);
     }
     const temp = structuredClone(data);
@@ -142,44 +171,50 @@ function Tree() {
             children: [...(node.children || []), NODE],
           };
         }
-
         if (node.isFolder && node.children) {
           return {
             ...node,
             children: DFS(node.children),
           };
         }
-
         return node;
       });
     };
 
     setData(DFS(data));
+
+    // Expand all ancestors and the parent
+    const ancestorIds = findAllAncestorIds(data, parentId);
+    setExpandedIds((prev) => {
+      const newSet = new Set(prev);
+      ancestorIds.forEach((id) => newSet.add(id));
+      newSet.add(parentId);
+      return newSet;
+    });
   };
 
   return (
     <div className="pt-3 text-sm font-medium text-slate-200">
-    <div className="flex gap-3 justify-between px-4 pb-1 text-lg text-slate-400">
-      <span className="text-blue-300 text-sm ">FILE TREE</span>
-      <div className="flex gap-3"> {/* Make this flex and add gap */}
-        <AiFillFileAdd
-          className="cursor-pointer hover:text-blue-500"
-          title="Add File"
-          onClick={() => {
-            addNode("new_file.md", selectedId ?? null);
-          }}
-        />
-        <AiOutlineFolderAdd
-          className="cursor-pointer hover:text-blue-500"
-          title="Add Folder"
-          onClick={() => {
-            addFolder("New Folder", selectedId ?? null);
-          }}
-        />
+      <div className="flex gap-3 justify-between px-4 pb-1 text-lg text-slate-400">
+        <span className="text-blue-300 text-sm ">FILE TREE</span>
+        <div className="flex gap-3">
+          <AiFillFileAdd
+            className="cursor-pointer hover:text-blue-500"
+            title="Add File"
+            onClick={() => {
+              addNode("new_file.md", selectedId ?? null);
+            }}
+          />
+          <AiOutlineFolderAdd
+            className="cursor-pointer hover:text-blue-500"
+            title="Add Folder"
+            onClick={() => {
+              addFolder("New Folder", selectedId ?? null);
+            }}
+          />
+        </div>
       </div>
-    </div>
-    <hr className="text-blue-300"/>
-
+      <hr className="text-blue-300" />
 
       {/* Tree rendering */}
       {data.map((node) => (

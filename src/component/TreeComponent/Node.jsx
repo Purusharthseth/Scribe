@@ -70,10 +70,10 @@ function Node({
   return (
     <div className="ml-2 mt-1">
       <div
-        className={`group flex items-center pr-8 relative rounded px-1 py-0.5 cursor-pointer ${
+        className={`group flex items-center pr-9 relative rounded px-1 py-0.5 cursor-pointer ${
           isSelected ? "bg-blue-800 text-white" : "hover:bg-slate-800"
         }`}
-        onClick={() => setSelectedId(obj.id)}
+        onClick={() => {setSelectedId(obj.id); toggleCollapse();}}
       >
         {obj.isFolder && (
           <span
@@ -105,9 +105,9 @@ function Node({
 
         {/* Right-side action buttons */}
         {!editing && (
-          <div className="absolute right-1 top-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute right-2 top-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
-              className="hover:text-yellow-400"
+              className="hover:text-yellow-400 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 setEditing(true);
@@ -117,7 +117,7 @@ function Node({
               <MdEdit />
             </button>
             <button
-              className="hover:text-red-400"
+              className="hover:text-red-400 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 del();
