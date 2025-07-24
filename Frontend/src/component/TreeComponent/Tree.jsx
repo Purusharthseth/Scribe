@@ -2,73 +2,34 @@ import { useState } from "react";
 import Node from "./Node";
 import { AiFillFileAdd, AiOutlineFolderAdd } from "react-icons/ai";
 
-const files = [
-  {
-    id: 1,
-    name: "public",
-    isFolder: true,
-    children: [
-      {
-        id: 2,
-        name: "index.html",
-        isFolder: false,
-      },
-    ],
-  },
-  {
-    id: 3,
-    name: "src",
-    isFolder: true,
-    children: [
-      {
-        id: 4,
-        name: "components",
-        isFolder: true,
-        children: [
-          {
-            id: 5,
-            name: "test",
-            isFolder: true,
-            children: [
-              {
-                id: 6,
-                name: "file.js",
-                isFolder: false,
-              },
-            ],
-          },
-        ],
-      },
-      {
-        id: 7,
-        name: "App.js",
-        isFolder: false,
-      },
-    ],
-  },
-];
 
 // Helper to find all ancestor ids of a node
 function findAllAncestorIds(data, targetId) {
   let res = [];
-  function dfs(nodes, ancestors) {
+  function dfs(nodes) { //nodes will alwyas be an array.
     for (let node of nodes) {
+      res.push(node.id);
       if (node.id === targetId) {
-        res = [...ancestors]; // return ancestors only, not including targetId
+        res.pop();
         return true;
       }
       if (node.isFolder && node.children) {
-        if (dfs(node.children, [...ancestors, node.id])) return true;
+        if (dfs(node.children)) {
+          return true; 
+        }
       }
+      res.pop();
     }
     return false;
   }
-  dfs(data, []);
+  if(!dfs(data)) console.log("Node not found.");
   return res;
 }
 
+
+
 function Tree() {
-  const [data, setData] = useState(files);
+  const [data, setData] = useState([]);
   const [expandedIds, setExpandedIds] = useState(new Set());
   const [selectedId, setSelectedId] = useState(null);
 
@@ -119,7 +80,7 @@ function Tree() {
     const DFS = (curr) => {
       for (let i = 0; i < curr.length; i++) {
         if (curr[i].id === nodeId) {
-          curr.splice(i, 1);
+          curr.splice(i, 1); //for deletion
           return true;
         }
         if (curr[i].isFolder && curr[i].children) {
@@ -131,7 +92,7 @@ function Tree() {
 
     if (DFS(temp)) {
       setData(temp);
-    }
+    } 
   };
 
   const editNode = (nodeId, newName) => {

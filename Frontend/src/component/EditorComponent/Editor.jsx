@@ -4,10 +4,12 @@ import { markdown } from '@codemirror/lang-markdown';
 import { keymap } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 import { Prec } from '@codemirror/state';
-import markdownCustomKeys from './utils/markdown-commands.js';
+import markdownCustomKeys from '../../utils/markdown-commands.js';
 import { scribeDarkTheme, scribeHighlightStyle } from './editorTheme.js';
 import { syntaxHighlighting } from "@codemirror/language";
+
 const ICmd = markdownCustomKeys.find(cmd => cmd.key === "Mod-i");
+
 function Editor({ markdownText, setMarkdownText }) {
   const editor = useRef(null);
   const editorView = useRef(null);

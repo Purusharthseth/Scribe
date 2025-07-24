@@ -1,7 +1,6 @@
 // editorTheme.js
 import { EditorView } from "@codemirror/view";
 import { HighlightStyle, tags as t } from "@codemirror/highlight";
-import { syntaxHighlighting } from "@codemirror/language";
 
 export const scribeDarkTheme = EditorView.theme({
   "&": {

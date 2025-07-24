@@ -1,6 +1,6 @@
 // Preview.jsx
+import parseMarkdown from '@/lib/markdown';
 import React, { useEffect } from 'react';
-import parseMarkdown from './lib/markdown';
 
 function Preview({ markdownText, setMarkdownText }) {
   useEffect(() => {

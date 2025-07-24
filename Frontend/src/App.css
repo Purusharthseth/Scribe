@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
-body {
+/* body {
   margin: 0;
   font-family: 'Inter', sans-serif;
   color: #fff;
   overflow: hidden;
-}
+} */
 .container {
   display: flex;
   height: 100vh;

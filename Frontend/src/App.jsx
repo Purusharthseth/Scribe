@@ -1,7 +1,7 @@
 // App.jsx
 import './App.css';
+import EditorContainer from './component/EditorComponent/EditorCont';
 import Tree from './component/TreeComponent/Tree';
-import EditorCont from './EditorCont';
 
 function App() {
   return (
@@ -13,7 +13,7 @@ function App() {
       
       {/* Editor Area - Flexible width */}
       <div className="flex-1 overflow-hidden">
-        <EditorCont />
+        <EditorContainer />
       </div>
     </div>
   );

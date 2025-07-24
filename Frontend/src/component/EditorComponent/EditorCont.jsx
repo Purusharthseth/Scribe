@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import Editor from './Editor';
 import Preview from './Preview';
 import { Pencil1Icon, EyeOpenIcon } from '@radix-ui/react-icons';
 import * as Tooltip from '@radix-ui/react-tooltip';
+import Editor from './Editor';
 
 function EditorContainer() {
   const [markdownText, setMarkdownText] = useState(`# Welcome to Scribe
