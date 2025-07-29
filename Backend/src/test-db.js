@@ -1,13 +1,16 @@
-import { db } from './db/drizzle.js';
-import { sql } from 'drizzle-orm';
+// test-db.js (ESM-friendly)
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Client } from 'pg';
+import 'dotenv/config';
+import { files } from './db/schema.js';
 
-async function testConnection() {
-  try {
-    const result = await db.execute(sql`SELECT NOW()`);
-    console.log("✅ Drizzle is working! DB time:", result.rows[0].now);
-  } catch (error) {
-    console.error("❌ Drizzle failed:", error.message);
-  }
-}
+const client = new Client({ connectionString: process.env.DATABASE_URL });
+await client.connect();
 
-testConnection();
+const db = drizzle(client);
+
+// Fetch and log files
+const result = await db.select().from(files);
+console.log(result);
+
+await client.end();
