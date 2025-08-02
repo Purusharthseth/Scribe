@@ -14,8 +14,9 @@ const getAllVault= AsyncHandler(async(req, res)=>{
         .where(eq(vaults.owner_id, userId));
     return res.status(200).json(new ApiResponse(200, userVaults, "Vaults fetched succesfully"));
 });
+
 const deleteVault = AsyncHandler(async (req, res) => {
-    const { vaultId } = parseInt(req.params);
+    const { vaultId } = req.params;
     const userId = req.auth().userId; 
     const deletedVault = await db
         .delete(vaults)
@@ -29,9 +30,9 @@ const deleteVault = AsyncHandler(async (req, res) => {
     if (!deletedVault[0]) throw new ApiError(404, "Vault not found or you aren't the owner.");
 });
 const getVaultById = AsyncHandler(async (req, res) => {
-    const { vaultId } = parseInt(req.params);
+    const { vaultId } = req.params;
     const userId = req.auth().userId;
-    const {shareToken} = req.body;
+    const shareToken = req.body?.shareToken; // Optional
 
     const vault = await db
         .select()
@@ -43,7 +44,7 @@ const getVaultById = AsyncHandler(async (req, res) => {
             )
         );
 
-    if (!vault[0]) throw new ApiError(404, "Vault not found or you aren't the owner.");
+    if (!vault[0]) throw new ApiError(404, "Vault not found or you don't have access to do so.");
 
     res.status(200).json(new ApiResponse(200, vault[0], "Vault fetched successfully."));
 });
@@ -63,7 +64,7 @@ const addVault = AsyncHandler(async (req, res) => {
 
 const updateVaultName = AsyncHandler(async (req, res) => {
     const { name } = req.body;
-    const { vaultId } = parseInt(req.params);
+    const { vaultId } = req.params;
     const userId = req.auth().userId;
     if (!name.trim()) throw new ApiError(400, "Vault name cannot be empty.");
 
@@ -84,7 +85,7 @@ const updateVaultName = AsyncHandler(async (req, res) => {
 });
 
 const updateVaultFileTree = AsyncHandler(async (req, res) => {
-    const { vaultId } = parseInt(req.params);
+    const { vaultId } = req.params;
     const { fileTree, shareToken } = req.body;
     const userId = req.auth().userId;
 

@@ -13,6 +13,7 @@ app.use(
         credentials: true
     })
 )
+app.use(express.json());
 app.use(clerkMiddleware());
 
 //AUTH PROTECTION

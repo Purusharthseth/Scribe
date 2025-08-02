@@ -14,6 +14,7 @@
   "description": "",
   "dependencies": {
     "@clerk/express": "^1.7.14",
+    "@paralleldrive/cuid2": "^2.2.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "drizzle-orm": "^0.44.3",

@@ -1,9 +1,10 @@
-import { integer } from 'drizzle-orm/gel-core';
-import { pgTable, serial, text, jsonb } from 'drizzle-orm/pg-core';
+import { text, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable } from 'drizzle-orm/pg-core';
+import { createId } from '@paralleldrive/cuid2';
 
 // Vaults with file_tree JSONB and simplified sharing
 export const vaults = pgTable('vaults', {
-  id: serial('id').primaryKey(),
+  id: text('id').primaryKey().$defaultFn(() => createId()),
   owner_id: text('owner_id').notNull(), // Clerk user_id
   name: text('name').notNull(),
   file_tree: jsonb('file_tree').notNull().default([]), // Full hierarchy
@@ -13,8 +14,8 @@ export const vaults = pgTable('vaults', {
 
 // Files (flat storage, referenced by file_tree)
 export const files = pgTable('files', {
-  id: serial('id').primaryKey(), // Matches IDs in file_tree
-  vault_id: integer('vault_id').references(() => vaults.id, { onDelete: 'cascade' }),
+  id: text('id').primaryKey().$defaultFn(() => createId()), // Matches IDs in file_tree
+  vault_id: text('vault_id').references(() => vaults.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   content: text('content'), 
 });
