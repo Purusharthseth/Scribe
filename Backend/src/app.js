@@ -1,6 +1,10 @@
 import express from 'express';
 import cors from "cors";
-import { clerkMiddleware, requireAuth } from '@clerk/express'
+import ApiError from './utils/ApiError.js';
+import AsyncHandler from './utils/AsyncHandler.js';
+import errorHandler from './middlewares/error.middleware.js';
+import { clerkMiddleware } from '@clerk/express'
+
 const app = express();
 
 app.use(
@@ -11,12 +15,20 @@ app.use(
 )
 app.use(clerkMiddleware());
 
-// app.use(async(req, res, next)=>{
-//     const userId = req.auth.userId
-//     if(!userId) return res.status(401).json({msg:"ERROR"});
-// })
+//AUTH PROTECTION
+app.use(AsyncHandler((req, res, next)=>{
+    const userId = req.auth().userId
+    // if(!userId) throw new ApiError(401, "User not authenticated.")
+    next();
+}))
 
 //importing routes
 import healthcheckRouter from './routes/healthcheck.route.js';
+import vaultRouter from './routes/vault.route.js';
+
+//routes
 app.use("/api/healthcheck", healthcheckRouter);
+app.use("/api/vaults", vaultRouter);
+
+app.use(errorHandler);
 export default app;
