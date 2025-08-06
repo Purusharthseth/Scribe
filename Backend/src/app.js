@@ -19,17 +19,22 @@ app.use(clerkMiddleware());
 //AUTH PROTECTION
 app.use(AsyncHandler((req, res, next)=>{
     const userId = req.auth().userId
-    // if(!userId) throw new ApiError(401, "User not authenticated.")
+    if(!userId) throw new ApiError(401, "User not authenticated.")
     next();
 }))
 
 //importing routes
 import healthcheckRouter from './routes/healthcheck.route.js';
 import vaultRouter from './routes/vault.route.js';
+import fileRouter from './routes/file.route.js';
+import folderRouter from './routes/folder.route.js';
 
 //routes
 app.use("/api/healthcheck", healthcheckRouter);
 app.use("/api/vaults", vaultRouter);
+app.use("/api/files", fileRouter);
+app.use("/api/folders", folderRouter);
 
+//error middleware
 app.use(errorHandler);
 export default app;

@@ -4,11 +4,13 @@ import AsyncHandler from "../utils/AsyncHandler.js";
 import db from "../db/drizzle.js";
 import { vaults } from "../db/schema.js";
 import ApiError from "../utils/ApiError.js";
+
 //APIs to add, change sharing mode.
 // ABOVE IS IMPORTANT.
+
 const getAllVault= AsyncHandler(async(req, res)=>{
     const userId = req.auth().userId;
-     const userVaults = await db
+    const userVaults = await db
         .select()
         .from(vaults)
         .where(eq(vaults.owner_id, userId));
@@ -17,7 +19,7 @@ const getAllVault= AsyncHandler(async(req, res)=>{
 
 const deleteVault = AsyncHandler(async (req, res) => {
     const { vaultId } = req.params;
-    const userId = req.auth().userId; 
+    const userId = 'user_example123';
     const deletedVault = await db
         .delete(vaults)
         .where(
@@ -28,11 +30,13 @@ const deleteVault = AsyncHandler(async (req, res) => {
         )
         .returning();  
     if (!deletedVault[0]) throw new ApiError(404, "Vault not found or you aren't the owner.");
+    return res.status(200).json(new ApiResponse(200, deletedVault[0], "Vault deleted successfully."));
 });
+
 const getVaultById = AsyncHandler(async (req, res) => {
     const { vaultId } = req.params;
     const userId = req.auth().userId;
-    const shareToken = req.body?.shareToken; // Optional
+    const shareToken = req.body?.shareToken;
 
     const vault = await db
         .select()
@@ -70,7 +74,10 @@ const updateVaultName = AsyncHandler(async (req, res) => {
 
     const updatedVault = await db
         .update(vaults)
-        .set({ name })
+        .set({ 
+            name,
+            updated_at: new Date() // Added updated_at timestamp
+        })
         .where(
             and(
                 eq(vaults.id, vaultId),
@@ -91,7 +98,10 @@ const updateVaultFileTree = AsyncHandler(async (req, res) => {
 
     const updatedVault = await db
         .update(vaults)
-        .set({ file_tree: fileTree })
+        .set({ 
+            file_tree: fileTree,
+            updated_at: new Date() // Added updated_at timestamp
+        })
         .where(
             or(
                 and(
@@ -107,9 +117,9 @@ const updateVaultFileTree = AsyncHandler(async (req, res) => {
         )
         .returning();
 
-    if (!updatedVault[0]) throw new ApiError(404, "Vault not found or you aren't the owner.");
+    if (!updatedVault[0]) throw new ApiError(404, "Vault not found or you don't have access to do so.");
 
-    res.status(200).json(new ApiResponse(200, updatedVault[0], "Vault name updated successfully."));
+    res.status(200).json(new ApiResponse(200, updatedVault[0], "Vault file tree updated successfully."));
 });
 
-export { getAllVault, updateVaultName, addVault, updateVaultFileTree, getVaultById, deleteVault};
+export { getAllVault, updateVaultName, addVault, updateVaultFileTree, getVaultById, deleteVault };
