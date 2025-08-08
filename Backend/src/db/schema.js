@@ -1,4 +1,4 @@
-import { text, jsonb, timestamp } from 'drizzle-orm/pg-core';
+import { text, jsonb, timestamp, index } from 'drizzle-orm/pg-core';
 import { pgTable } from 'drizzle-orm/pg-core';
 import { createId } from '@paralleldrive/cuid2';
 
@@ -12,7 +12,10 @@ export const vaults = pgTable('vaults', {
   share_token: text('share_token').unique(), // Only for share_mode != 'private'
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => ({
+  // Indexes for vaults
+  ownerIndex: index('idx_vaults_owner_id').on(table.owner_id),
+}));
 
 export const folders = pgTable('folders', {
   id: text('id').primaryKey().$defaultFn(() => createId()),
@@ -21,7 +24,11 @@ export const folders = pgTable('folders', {
   name: text('name').notNull(),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => ({
+  // Indexes for folders
+  vaultIndex: index('idx_folders_vault_id').on(table.vault_id),
+  parentIndex: index('idx_folders_parent_id').on(table.parent_id),
+}));
 
 export const files = pgTable('files', {
   id: text('id').primaryKey().$defaultFn(() => createId()),
@@ -31,4 +38,8 @@ export const files = pgTable('files', {
   content: text('content'),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => ({
+  // Indexes for files
+  vaultIndex: index('idx_files_vault_id').on(table.vault_id),
+  folderIndex: index('idx_files_folder_id').on(table.folder_id),
+}));
