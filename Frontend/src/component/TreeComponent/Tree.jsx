@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Node from "./Node";
 import { AiFillFileAdd, AiOutlineFolderAdd } from "react-icons/ai";
+import { Box, Flex, Text, Separator } from '@radix-ui/themes';
 
 
 // Helper to find all ancestor ids of a node
@@ -155,27 +156,27 @@ function Tree() {
   };
 
   return (
-    <div className="pt-3 text-sm font-medium text-slate-200">
-      <div className="flex gap-3 justify-between px-4 pb-1 text-lg text-slate-400">
-        <span className="text-blue-300 text-sm ">FILE TREE</span>
-        <div className="flex gap-3">
+    <Box pt="3" className="text-sm font-medium text-[var(--gray-11)]">
+      <Flex gap="3" justify="between" px="4" pb="1" align="center">
+        <Text size="2" weight="medium" className="text-[var(--blue-11)]">FILE TREE</Text>
+        <Flex gap="3">
           <AiFillFileAdd
-            className="cursor-pointer hover:text-blue-500"
+            className="cursor-pointer hover:text-[var(--blue-9)]"
             title="Add File"
             onClick={() => {
               addNode("new_file.md", selectedId ?? null);
             }}
           />
           <AiOutlineFolderAdd
-            className="cursor-pointer hover:text-blue-500"
+            className="cursor-pointer hover:text-[var(--blue-9)]"
             title="Add Folder"
             onClick={() => {
               addFolder("New Folder", selectedId ?? null);
             }}
           />
-        </div>
-      </div>
-      <hr className="text-blue-300" />
+        </Flex>
+      </Flex>
+      <Separator size="4" />
 
       {/* Tree rendering */}
       {data.map((node) => (
@@ -192,7 +193,7 @@ function Tree() {
           setSelectedId={setSelectedId}
         />
       ))}
-    </div>
+    </Box>
   );
 }
 

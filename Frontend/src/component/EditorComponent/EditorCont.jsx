@@ -91,7 +91,7 @@ The text is parsed in Markdown if you don't know how to write it click on help o
       {editorWidth > 0 && (
         <div 
           className="h-full overflow-hidden flex flex-col"
-          style={{ width: `${editorWidth}%` }}
+          style={{ '--editor-width': `${editorWidth}%`, width: 'var(--editor-width)' }}
         >
           <div className="flex-1 flex flex-col h-full">
             <Editor markdownText={markdownText} setMarkdownText={setMarkdownText} />
@@ -108,7 +108,7 @@ The text is parsed in Markdown if you don't know how to write it click on help o
 
       <div 
         className={`h-full overflow-auto ${editorWidth === 0 ? 'px-44 pt-7' : 'px-8 pt-5'} `}
-        style={{ width: editorWidth === 0 ? '100%' : `${100 - editorWidth}%` }}
+        style={{ '--preview-width': editorWidth === 0 ? '100%' : `${100 - editorWidth}%`, width: 'var(--preview-width)' }}
       >
         <Preview markdownText={markdownText} setMarkdownText={setMarkdownText} />
       </div>

@@ -1,19 +1,24 @@
-// App.jsx
+
 import '../App.css';
 import EditorContainer from './EditorComponent/EditorCont';
 import Tree from './TreeComponent/Tree';
+import { Flex, Box } from '@radix-ui/themes';
 
 function Vault() {
   return (
-    <div className="flex h-full">
-      <div className="w-60 h-full overflow-y-auto border-r select-none" style={{ background: "#18181b" }}>
+    <Flex height="100%">
+      <Box 
+        width="240px" 
+        height="100%" 
+        className="overflow-y-auto border-r border-[var(--gray-6)] bg-[var(--gray-2)] select-none"
+      >
         <Tree />
-      </div>
+      </Box>
       
-      <div className="flex-1 overflow-hidden">
+      <Box flexGrow="1" className="overflow-hidden">
         <EditorContainer />
-      </div>
-    </div>
+      </Box>
+    </Flex>
   );
 }
 

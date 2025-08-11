@@ -5,7 +5,7 @@ import { Theme } from "@radix-ui/themes";
 
 export default function Layout() {
   return (
-    <Theme grayColor="mauve">
+    <Theme appearance="dark" grayColor="mauve" accentColor="blue">
       <Header />
       <main className="mt-10 h-screen overflow-hidden">
         <Outlet />

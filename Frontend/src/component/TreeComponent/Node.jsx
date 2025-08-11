@@ -71,13 +71,13 @@ function Node({
     <div className="ml-2 mt-1">
       <div
         className={`group flex items-center pr-9 relative rounded px-1 py-0.5 cursor-pointer ${
-          isSelected ? "bg-blue-800 text-white" : "hover:bg-slate-800"
+          isSelected ? "bg-[var(--blue-9)] text-white" : "hover:bg-[var(--gray-3)]"
         }`}
         onClick={() => {setSelectedId(obj.id); toggleCollapse();}}
       >
         {obj.isFolder && (
           <span
-            className="text-slate-400 hover:text-blue-400 mr-1"
+            className="text-[var(--gray-9)] hover:text-[var(--blue-9)] mr-1"
             onClick={(e) => {
               e.stopPropagation();
               toggleCollapse();
@@ -95,7 +95,7 @@ function Node({
               onKeyDown={(e) => {
                 if (e.key === "Escape") setEditing(false);
               }}
-              className="bg-slate-900 border border-slate-600 text-white px-2 py-1 rounded outline-none focus:ring-2 focus:ring-blue-600"
+              className="bg-[var(--gray-2)] border border-[var(--gray-6)] text-[var(--gray-12)] px-2 py-1 rounded outline-none focus:ring-2 focus:ring-[var(--blue-8)]"
               autoFocus
             />
           </form>
@@ -107,7 +107,7 @@ function Node({
         {!editing && (
           <div className="absolute right-2 top-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
-              className="hover:text-yellow-400 cursor-pointer"
+              className="hover:text-[var(--yellow-9)] cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 setEditing(true);
@@ -117,7 +117,7 @@ function Node({
               <MdEdit />
             </button>
             <button
-              className="hover:text-red-400 cursor-pointer"
+              className="hover:text-[var(--red-9)] cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 del();
@@ -138,7 +138,7 @@ function Node({
             onKeyDown={(e) => {
               if (e.key === "Escape") setAddingNode(false);
             }}
-            className="bg-slate-800 border border-slate-600 text-white px-2 py-1 rounded outline-none focus:ring-2 focus:ring-blue-600"
+            className="bg-[var(--gray-2)] border border-[var(--gray-6)] text-[var(--gray-12)] px-2 py-1 rounded outline-none focus:ring-2 focus:ring-[var(--blue-8)]"
             autoFocus
           />
         </form>
@@ -152,7 +152,7 @@ function Node({
             onKeyDown={(e) => {
               if (e.key === "Escape") setAddingFolder(false);
             }}
-            className="bg-slate-800 border border-slate-600 text-white px-2 py-1 rounded outline-none focus:ring-2 focus:ring-blue-600"
+            className="bg-[var(--gray-2)] border border-[var(--gray-6)] text-[var(--gray-12)] px-2 py-1 rounded outline-none focus:ring-2 focus:ring-[var(--blue-8)]"
             autoFocus
           />
         </form>
