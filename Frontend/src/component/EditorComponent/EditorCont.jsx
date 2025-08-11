@@ -55,8 +55,39 @@ The text is parsed in Markdown if you don't know how to write it click on help o
   return (
     <div 
       ref={containerRef}
-      className="flex w-full h-full bg-gradient-to-br from-[#18181b] to-[#23232a] select-none"
+      className="flex w-full h-full bg-gradient-to-br from-[#18181b] to-[#23232a] select-none relative"
     >
+      {/* Toggle button on top */}
+      <div className="absolute top-4 right-4 z-10">
+        <Tooltip.Provider>
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <button
+                onClick={() => setEditorWidth(editorWidth === 0 ? 50 : 0)}
+                className="p-2 rounded-md hover:bg-gray-700 transition-colors cursor-pointer"
+              >
+                {editorWidth === 0 ? (
+                  <Pencil1Icon className="text-gray-300 w-5 h-5" />
+                ) : (
+                  <EyeOpenIcon className="text-gray-300 w-5 h-5" />
+                )}
+              </button>
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                className="px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded shadow-lg select-none"
+                side="bottom"
+                sideOffset={5}
+              >
+                {editorWidth === 0 ? "Show editor" : "Hide editor"}
+                <Tooltip.Arrow className="fill-gray-900" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        </Tooltip.Provider>
+      </div>
+
+      {/* Editor and Preview area */}
       {editorWidth > 0 && (
         <div 
           className="h-full overflow-hidden flex flex-col"
@@ -74,32 +105,6 @@ The text is parsed in Markdown if you don't know how to write it click on help o
         >
         </div>
       )}
-    <Tooltip.Provider>
-      <Tooltip.Root>
-        <Tooltip.Trigger asChild>
-          <button
-            onClick={() => setEditorWidth(editorWidth === 0 ? 50 : 0)}
-            className="absolute top-4 right-10 p-2 rounded-md hover:bg-gray-700 transition-colors cursor-pointer"
-          >
-            {editorWidth === 0 ? (
-              <Pencil1Icon className="text-gray-300 w-5 h-5" />
-            ) : (
-              <EyeOpenIcon className="text-gray-300 w-5 h-5" />
-            )}
-          </button>
-        </Tooltip.Trigger>
-        <Tooltip.Portal>
-          <Tooltip.Content
-            className="px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded shadow-lg select-none"
-            side="bottom"
-            sideOffset={5}
-          >
-            {editorWidth === 0 ? "Show editor" : "Hide editor"}
-            <Tooltip.Arrow className="fill-gray-900" />
-          </Tooltip.Content>
-        </Tooltip.Portal>
-      </Tooltip.Root>
-    </Tooltip.Provider>
 
       <div 
         className={`h-full overflow-auto ${editorWidth === 0 ? 'px-44 pt-7' : 'px-8 pt-5'} `}

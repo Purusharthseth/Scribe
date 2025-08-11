@@ -1,34 +1,47 @@
 @import "tailwindcss";
+import "@radix-ui/themes/styles.css";
 
-/* body {
+body {
   margin: 0;
   font-family: 'Inter', sans-serif;
-  color: #fff;
-  overflow: hidden;
-} */
-.container {
+  /* Remove overflow: hidden to allow scrolling */
+}
+/* .container {
   display: flex;
   height: 100vh;
   width: 100vw;
   margin: 0;
   padding: 0;
-}
+} */
 
-.editor {
+/* .editor {
   flex: 1;
   padding: 0;
   overflow: hidden;
   border-right: 1px solid #333;
   display: flex;
   flex-direction: column;
+} */
+/* .container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(to bottom right, #18181b, #23232a);
+} */
+.cl-userButtonOuterIdentifier{
+  color: #e5e7eb;
 }
-
 .editor > div {
   flex: 1;
   overflow: auto;
   padding: 20px;
 }
 
+/* .cl-internal-1j1lbor{
+  opacity: 0;
+} */
 .cm-editor {
   height: 100% !important;
 }

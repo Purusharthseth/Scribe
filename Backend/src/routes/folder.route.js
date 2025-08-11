@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addFolder, deleteFolder, editFolderName } from "../controllers/folder.controller";
+import { addFolder, deleteFolder, editFolderName } from "../controllers/folder.controller.js";
 
 const folderRouter= Router();
 folderRouter.route("/").post(addFolder);
