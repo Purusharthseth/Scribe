@@ -1,7 +1,7 @@
 
 import '../App.css';
-import EditorContainer from './EditorComponent/EditorCont';
-import Tree from './TreeComponent/Tree';
+import EditorContainer from '../component/EditorComponent/EditorCont';
+import Tree from '../component/TreeComponent/Tree';
 import { Flex, Box } from '@radix-ui/themes';
 
 function Vault() {

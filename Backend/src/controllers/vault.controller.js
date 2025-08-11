@@ -19,7 +19,7 @@ const getAllVault= AsyncHandler(async(req, res)=>{
 
 const deleteVault = AsyncHandler(async (req, res) => {
     const { vaultId } = req.params;
-    const userId = 'user_example123';
+    const userId = req.auth().userId;
     const deletedVault = await db
         .delete(vaults)
         .where(

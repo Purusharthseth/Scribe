@@ -8,7 +8,7 @@ const vaultRouter= Router();
 vaultRouter.route("/").get(getAllVault);
 vaultRouter.route("/:vaultId/name").put(updateVaultName);
 vaultRouter.route("/:vaultId").delete(deleteVault);
-vaultRouter.route("/add").post(addVault);
+vaultRouter.route("/").post(addVault);
 vaultRouter.route("/:vaultId/file-tree").put(updateVaultFileTree);
 vaultRouter.route("/:vaultId").get(getVaultById);
 
