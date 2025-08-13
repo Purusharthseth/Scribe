@@ -99,7 +99,7 @@ function Home() {
   };
 
   return (
-    <Box p="8" className="max-w-7xl mx-auto min-h-screen">
+    <Box p="8" className="max-w-7xl mx-auto">
       {/* Header Section */}
       <Flex justify="between" align="center" mb="12" className="border-b border-[var(--gray-6)] pb-8">
         <div>
@@ -223,7 +223,8 @@ function Home() {
           </div>
         </Flex>
       ) : vaults.length === 0 ? (
-        <Card className="py-24 px-8 border-2 border-dashed border-[var(--accent-6)] bg-gradient-to-br from-[var(--gray-1)] to-[var(--gray-2)]">
+        <Card className="py-24 cursor-pointer px-8 border-2 border-dashed border-[var(--accent-6)] bg-gradient-to-br from-[var(--gray-1)] to-[var(--gray-2)]"
+        onClick={() => setIsDialogOpen(true)}>
           <div className="text-center max-w-md mx-auto">
             <div className="bg-[var(--accent-3)] rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
               <PlusIcon className="w-8 h-8 text-[var(--accent-11)]" />

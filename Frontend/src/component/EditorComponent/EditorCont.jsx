@@ -15,7 +15,7 @@ The text is parsed in Markdown if you don't know how to write it click on help o
   const containerRef = useRef(null);
   const isDraggingRef = useRef(false);
 
-  const handleMouseDown = (e) => {
+  const handleMouseDown = () => {
     isDraggingRef.current = true;
     document.body.style.cursor = 'col-resize';
     document.addEventListener('mousemove', handleMouseMove);
@@ -24,11 +24,9 @@ The text is parsed in Markdown if you don't know how to write it click on help o
 
   const handleMouseMove = (e) => {
     if (!isDraggingRef.current || !containerRef.current) return;
-    
-    const containerRect = containerRef.current.getBoundingClientRect(); 
-    //provides info about size and position of the container
-    const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100; 
-    //e.clientX gives the x coordinate of the mouse pointer.
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const newWidth = ((e.clientX - rect.left) / rect.width) * 100;
     const constrainedWidth = Math.min(Math.max(newWidth, 25), 75);
     setEditorWidth(constrainedWidth);
   };
@@ -40,26 +38,25 @@ The text is parsed in Markdown if you don't know how to write it click on help o
     document.removeEventListener('mouseup', handleMouseUp);
   };
 
-  useEffect(() => { //MOD+E for toggling editor mode on/off
+  useEffect(() => { // MOD+E to toggle editor
     const editorOnOff = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
         e.preventDefault();
         setEditorWidth(prev => prev === 0 ? 50 : 0);
       }
     };
-
     window.addEventListener('keydown', editorOnOff);
     return () => window.removeEventListener('keydown', editorOnOff);
   }, []);
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      className="flex w-full h-full bg-gradient-to-br from-[#18181b] to-[#23232a] select-none relative"
+      className="relative flex flex-col w-full h-full bg-gradient-to-br from-[#18181b] to-[#23232a] select-none"
     >
-      {/* Toggle button on top */}
-      <div className="absolute top-4 right-4 z-10">
-        <Tooltip.Provider>
+      {/* Floating toggle button (no border line, no reserved space) */}
+      <div className="absolute top-2 right-2 z-10">
+        <Tooltip.Provider delayDuration={150}>
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
               <button
@@ -79,7 +76,7 @@ The text is parsed in Markdown if you don't know how to write it click on help o
                 side="bottom"
                 sideOffset={5}
               >
-                {editorWidth === 0 ? "Show editor" : "Hide editor"}
+                {editorWidth === 0 ? 'Show editor' : 'Hide editor'}
                 <Tooltip.Arrow className="fill-gray-900" />
               </Tooltip.Content>
             </Tooltip.Portal>
@@ -88,29 +85,31 @@ The text is parsed in Markdown if you don't know how to write it click on help o
       </div>
 
       {/* Editor and Preview area */}
-      {editorWidth > 0 && (
-        <div 
-          className="h-full overflow-hidden flex flex-col"
-          style={{ '--editor-width': `${editorWidth}%`, width: 'var(--editor-width)' }}
-        >
-          <div className="flex-1 flex flex-col h-full">
-            <Editor markdownText={markdownText} setMarkdownText={setMarkdownText} />
+      <div className="flex flex-1 min-w-0">
+        {editorWidth > 0 && (
+          <div
+            className="h-full overflow-hidden flex flex-col min-w-0"
+            style={{ width: `${editorWidth}%` }}
+          >
+            <div className="flex-1 flex flex-col h-full min-w-0">
+              <Editor markdownText={markdownText} setMarkdownText={setMarkdownText} />
+            </div>
           </div>
-        </div>
-      )}
-      {editorWidth > 0 && editorWidth < 100 && (
-        <div
-          className="w-0.5 flex items-center justify-center cursor-col-resize bg-gray-700 hover:bg-blue-800 transition-colors"
-          onMouseDown={handleMouseDown}
-        >
-        </div>
-      )}
+        )}
 
-      <div 
-        className={`h-full overflow-auto ${editorWidth === 0 ? 'px-44 pt-7' : 'px-8 pt-5'} `}
-        style={{ '--preview-width': editorWidth === 0 ? '100%' : `${100 - editorWidth}%`, width: 'var(--preview-width)' }}
-      >
-        <Preview markdownText={markdownText} setMarkdownText={setMarkdownText} />
+        {editorWidth > 0 && editorWidth < 100 && (
+          <div
+            className="w-0.5 flex items-center justify-center cursor-col-resize bg-gray-700 hover:bg-blue-800 transition-colors"
+            onMouseDown={handleMouseDown}
+          />
+        )}
+
+        <div
+          className={`h-full overflow-auto ${editorWidth === 0 ? 'px-44 pt-7' : 'px-8 pt-5'} min-w-0`}
+          style={{ width: editorWidth === 0 ? '100%' : `${100 - editorWidth}%` }}
+        >
+          <Preview markdownText={markdownText} setMarkdownText={setMarkdownText} />
+        </div>
       </div>
     </div>
   );
