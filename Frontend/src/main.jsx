@@ -27,7 +27,7 @@ const router = createBrowserRouter(
     <Route path="/" element={<Layout />} >
       <Route path='' element= {<LandingPage />} />
       <Route path="home" element={Protected(<Home />)} />
-      ž<Route path="vault/:vaultID?" element={<Vault />} />
+      <Route path="vault/:vaultId" element={<Vault />} />
     </Route>
   )
 );

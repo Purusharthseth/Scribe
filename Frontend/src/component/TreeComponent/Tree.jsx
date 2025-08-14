@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Node from "./Node";
 import { AiFillFileAdd, AiOutlineFolderAdd } from "react-icons/ai";
 import { Box, Flex, Text, Separator } from '@radix-ui/themes';
+import useAxios from '@/utils/useAxios';
 
 
-// Helper to find all ancestor ids of a node
 function findAllAncestorIds(data, targetId) {
   let res = [];
-  function dfs(nodes) { //nodes will alwyas be an array.
+  function dfs(nodes) { 
     for (let node of nodes) {
       res.push(node.id);
       if (node.id === targetId) {
@@ -27,12 +27,53 @@ function findAllAncestorIds(data, targetId) {
   return res;
 }
 
-
-
-function Tree() {
+function Tree({vaultId}) {
   const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const axios = useAxios();
+  
   const [expandedIds, setExpandedIds] = useState(new Set());
   const [selectedId, setSelectedId] = useState(null);
+
+  // Fetch file tree when vaultId changes
+  useEffect(() => {
+    if (!vaultId) return;
+    
+    setLoading(true);
+    const controller = new AbortController();
+    
+    (async () => {
+      try {
+        const res = await axios.get(`/api/vaults/${vaultId}`, { 
+          signal: controller.signal 
+        });
+        const tree = res?.data?.data?.file_tree || [];
+        console.log(res.data.data);
+        setData(Array.isArray(tree) ? tree : []);
+      } catch (e) {
+        if (e.code !== "ERR_CANCELED") {
+          console.error("Failed to fetch vault tree:", e);
+          setData([]);
+        }
+      } finally {
+        setLoading(false);
+      }
+    })();
+    
+    return () => controller.abort();
+  }, [vaultId]);
+
+  // Save tree changes back to API
+  const saveTreeToAPI = async (newTree) => {
+    if (!vaultId) return;
+    try {
+      await axios.put(`/api/vaults/${vaultId}/file-tree`, {
+        fileTree: newTree
+      });
+    } catch (e) {
+      console.error("Failed to save tree:", e);
+    }
+  };
 
   const addNode = (newNode, parentId) => {
     const temp = structuredClone(data);
@@ -45,6 +86,7 @@ function Tree() {
     if (parentId === null) {
       temp.push(NODE);
       setData(temp);
+      saveTreeToAPI(temp);
       return;
     }
 
@@ -62,8 +104,8 @@ function Tree() {
     };
     DFS(temp);
     setData(temp);
+    saveTreeToAPI(temp);
 
-    // Expand all ancestors and the parent folder
     const ancestorIds = findAllAncestorIds(data, parentId);
     setExpandedIds((prev) => {
       const newSet = new Set(prev);
@@ -93,6 +135,7 @@ function Tree() {
 
     if (DFS(temp)) {
       setData(temp);
+      saveTreeToAPI(temp);
     } 
   };
 
@@ -110,6 +153,7 @@ function Tree() {
     };
 
     setData(DFS(data));
+    saveTreeToAPI(DFS(data));
   };
 
   const addFolder = (newNodeName, parentId) => {
@@ -121,7 +165,9 @@ function Tree() {
     };
 
     if (parentId === null) {
-      setData([...data, NODE]);
+      const newTree = [...data, NODE];
+      setData(newTree);
+      saveTreeToAPI(newTree);
       return;
     }
 
@@ -143,7 +189,9 @@ function Tree() {
       });
     };
 
-    setData(DFS(data));
+    const newTree = DFS(data);
+    setData(newTree);
+    saveTreeToAPI(newTree);
 
     // Expand all ancestors and the parent
     const ancestorIds = findAllAncestorIds(data, parentId);
@@ -178,8 +226,13 @@ function Tree() {
       </Flex>
       <Separator size="4" />
 
-      {/* Tree rendering */}
-      {data.map((node) => (
+      {loading ? (
+        <Box p="4">
+          <Text size="2" color="gray">Loading files...</Text>
+        </Box>
+      ) : (
+        /* Tree rendering */
+        data.map((node) => (
         <Node
           key={node.id}
           obj={node}
@@ -192,7 +245,8 @@ function Tree() {
           selectedId={selectedId}
           setSelectedId={setSelectedId}
         />
-      ))}
+        ))
+      )}
     </Box>
   );
 }

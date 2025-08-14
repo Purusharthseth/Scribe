@@ -1,6 +1,7 @@
 import useAxios from '@/utils/useAxios';
 import React, { useEffect, useState } from 'react';
 import { PlusIcon, DotsVerticalIcon, Pencil1Icon, TrashIcon } from '@radix-ui/react-icons';
+import { Link } from 'react-router-dom';
 import { Button, Card, Text, Heading, Flex, Box, Spinner, Dialog, TextField, DropdownMenu, AlertDialog } from '@radix-ui/themes';
 
 function Home() {
@@ -287,7 +288,7 @@ function Home() {
                       weight={'light'}
                       className="uppercase cursor-pointer tracking-wider font-medium  transition-colors group-hover:text-[var(--accent-10)]"
                     >
-                      <span>Click to open →</span>
+                      <Link to={`/vault/${vault.id}`}>Click to open →</Link>
                     </Text>
                   </div>
                 </div>

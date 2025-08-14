@@ -1,27 +1,42 @@
-// custom hook
+// useAxios.js — no interceptors, minimal + correct
 import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 import { useMemo } from "react";
 
-const useAxios=()=>{
+const useAxios = () => {
   const { getToken } = useAuth();
 
-  const axiosInstance = useMemo(() => {
+  return useMemo(() => {
     const instance = axios.create({
       baseURL: import.meta.env.VITE_BACKEND_URL,
       headers: { "Content-Type": "application/json" },
     });
 
-    instance.interceptors.request.use(async (config) => {
+    const request = async (config) => {
       const token = await getToken();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    });
-    return instance;
-  }, [getToken]);
+      const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+      const headers = { ...authHeader, ...(config.headers || {}) };
+      return instance.request({ ...config, headers });
+    };
 
-  return axiosInstance;
-}
-export default useAxios
+    const get = (url, config = {}) =>
+      request({ method: "get", url, ...config });
+
+    const del = (url, config = {}) =>
+      request({ method: "delete", url, ...config });
+
+    const post = (url, data, config = {}) =>
+      request({ method: "post", url, data, ...config });
+
+    const put = (url, data, config = {}) =>
+      request({ method: "put", url, data, ...config });
+
+    const patch = (url, data, config = {}) =>
+      request({ method: "patch", url, data, ...config });
+
+    
+    return { get, delete: del, post, put, patch, request };
+  }, [getToken]);
+};
+
+export default useAxios;
