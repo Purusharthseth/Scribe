@@ -1,3 +1,4 @@
+import useVaultStore from "@/store/useVaultStore";
 import React, { useState, useRef, useEffect } from "react";
 import { FaCaretDown, FaCaretUp } from "react-icons/fa";
 import { MdDeleteOutline, MdEdit } from "react-icons/md";
@@ -17,6 +18,7 @@ function Node({
   const [addingFolder, setAddingFolder] = useState(false);
   const [editing, setEditing] = useState(false);
   const inputRef = useRef(null);
+  const setSelectedFile = useVaultStore((s)=>s.setSelectedFile);
 
   const isExpanded = expandedIds.has(obj.id);
   const isSelected = selectedId === obj.id;
@@ -47,24 +49,30 @@ function Node({
     }
   }, [addingNode, addingFolder, editing]);
 
-  const addN = (e) => {
+  const addN = async (e) => {
     e.preventDefault();
-    addNode(e.target[0].value, obj.id);
-    setAddingNode(false);
+    const success = await addNode(e.target[0].value, obj.id);
+    if (success) {
+      setAddingNode(false);
+    }
   };
 
-  const addF = (e) => {
+  const addF = async (e) => {
     e.preventDefault();
-    addFolder(e.target[0].value, obj.id);
-    setAddingFolder(false);
+    const success = await addFolder(e.target[0].value, obj.id);
+    if (success) {
+      setAddingFolder(false);
+    }
   };
 
-  const del = () => deleteNode(obj.id);
+  const del = () => deleteNode(obj.id, obj.type);
 
-  const edit = (e) => {
+  const edit = async (e) => {
     e.preventDefault();
-    editNode(obj.id, e.target[0].value);
-    setEditing(false);
+    const success = await editNode(obj.id, e.target[0].value, obj.type);
+    if (success) {
+      setEditing(false);
+    }
   };
 
   return (
@@ -73,9 +81,14 @@ function Node({
         className={`group flex items-center pr-9 relative rounded px-1 py-0.5 cursor-pointer ${
           isSelected ? "bg-[var(--blue-9)] text-white" : "hover:bg-[var(--gray-3)]"
         }`}
-        onClick={() => {setSelectedId(obj.id); toggleCollapse();}}
+        onClick={() => {
+          setSelectedId(obj);
+          if (obj.type === "folder") {
+            toggleCollapse();
+          } else setSelectedFile(obj);
+        }}
       >
-        {obj.isFolder && (
+        {obj.type === "folder" && (
           <span
             className="text-[var(--gray-9)] hover:text-[var(--blue-9)] mr-1"
             onClick={(e) => {
@@ -158,9 +171,9 @@ function Node({
         </form>
       )}
 
-      {isExpanded && obj.isFolder && (
+      {isExpanded && obj.type === "folder" && (
         <div className="ml-4 mt-1">
-          {obj.children.map((node) => (
+          {obj.children && obj.children.map((node) => (
             <Node
               key={node.id}
               obj={node}
