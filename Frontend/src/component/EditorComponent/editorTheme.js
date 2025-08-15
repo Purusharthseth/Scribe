@@ -12,6 +12,7 @@ export const scribeDarkTheme = EditorView.theme({
   },
   ".cm-content": {
     caretColor: "#3b82f6",
+    paddingBottom: "10rem",
   },
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: "#3b82f6" },
   ".cm-selectionBackground, .cm-content ::selection": {

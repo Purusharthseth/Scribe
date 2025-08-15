@@ -7,14 +7,15 @@ import { Flex, Box } from '@radix-ui/themes';
 function Vault() {
   const { vaultId } = useParams();
   return (
-    <Flex height="100%" className="w-full overflow-hidden"> 
+    <Flex className="h-full w-full overflow-hidden">
+      {/* Sidebar */}
       <Box
         className="shrink-0 min-w-[240px] w-[240px] h-full overflow-y-auto border-r border-[var(--gray-6)] bg-[var(--gray-2)] select-none"
       >
         <Tree className="h-full" vaultId={vaultId} />
       </Box>
 
-      <Box flexGrow="1" className="overflow-hidden min-w-0 "> 
+      <Box flexGrow="1" className="h-full min-w-0">
         <EditorContainer />
       </Box>
     </Flex>

@@ -40,14 +40,7 @@ function Editor({ markdownText, setMarkdownText }) {
           EditorView.updateListener.of((v) => {
             if (v.docChanged) {
               const text = v.state.doc.toString();
-              if (text !== markdownText) setMarkdownText(text);
-              if (v.selectionSet) {
-                v.view.dispatch({
-                  effects: EditorView.scrollIntoView(v.state.selection.main.from, {
-                    y: "center",
-                  })
-                });
-              }
+              setMarkdownText(text);
             }
           }),
         ],
@@ -56,7 +49,6 @@ function Editor({ markdownText, setMarkdownText }) {
     }
   }, []);
   
-
   useEffect(() => {
     if (editorView.current) {
       const currentDoc = editorView.current.state.doc.toString();
@@ -72,7 +64,7 @@ function Editor({ markdownText, setMarkdownText }) {
     }
   }, [markdownText]);
 
-  return <div className="editor h-screen flex-1" ref={editor}></div>;
+  return <div className="editor h-full w-full overflow-auto" ref={editor}></div>;
 }
 
 export default Editor;

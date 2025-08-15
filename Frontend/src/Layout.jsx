@@ -7,10 +7,13 @@ import { Toaster } from 'react-hot-toast';
 export default function Layout() {
   return (
     <Theme appearance="dark" grayColor="mauve" accentColor="blue">
-      <Header />
-      <main className="mt-10 h-screen overflow-hidden">
-        <Outlet />
-      </main>
+      <div className="h-screen flex flex-col">
+        <Header className="sticky top-0 z-50" />
+        <main className="flex-1 min-h-0">
+          <Outlet />
+        </main>
+      </div>
+
       <Toaster 
         position="bottom-right"
         toastOptions={{

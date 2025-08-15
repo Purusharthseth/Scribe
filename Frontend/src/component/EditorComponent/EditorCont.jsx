@@ -7,9 +7,9 @@ import Editor from './Editor';
 function EditorContainer() {
   const [markdownText, setMarkdownText] = useState(`# Welcome to Scribe
 
-Write your text in left, and the readable doc will appear in right side!
+Write your text on the left, and the readable doc will appear on the right side!
 
-The text is parsed in Markdown if you don't know how to write it click on help on top right!`);
+The text is parsed in Markdown. If you don't know how to write it, click on help on the top right!`);
 
   const [editorWidth, setEditorWidth] = useState(50);
   const containerRef = useRef(null);
@@ -24,7 +24,6 @@ The text is parsed in Markdown if you don't know how to write it click on help o
 
   const handleMouseMove = (e) => {
     if (!isDraggingRef.current || !containerRef.current) return;
-
     const rect = containerRef.current.getBoundingClientRect();
     const newWidth = ((e.clientX - rect.left) / rect.width) * 100;
     const constrainedWidth = Math.min(Math.max(newWidth, 25), 75);
@@ -38,7 +37,7 @@ The text is parsed in Markdown if you don't know how to write it click on help o
     document.removeEventListener('mouseup', handleMouseUp);
   };
 
-  useEffect(() => { // MOD+E to toggle editor
+  useEffect(() => {
     const editorOnOff = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
         e.preventDefault();
@@ -54,7 +53,7 @@ The text is parsed in Markdown if you don't know how to write it click on help o
       ref={containerRef}
       className="relative flex flex-col w-full h-full bg-gradient-to-br from-[#18181b] to-[#23232a] select-none"
     >
-      {/* Floating toggle button (no border line, no reserved space) */}
+      {/* Floating toggle button */}
       <div className="absolute top-2 right-2 z-10">
         <Tooltip.Provider delayDuration={150}>
           <Tooltip.Root>
@@ -85,18 +84,20 @@ The text is parsed in Markdown if you don't know how to write it click on help o
       </div>
 
       {/* Editor and Preview area */}
-      <div className="flex flex-1 min-w-0">
+      <div className="flex flex-1 min-w-0 min-h-0">
+        {/* Editor */}
         {editorWidth > 0 && (
           <div
-            className="h-full overflow-hidden flex flex-col min-w-0"
+            className="h-full flex flex-col min-w-0"
             style={{ width: `${editorWidth}%` }}
           >
-            <div className="flex-1 flex flex-col h-full min-w-0">
+            <div className="flex-1 min-h-0">
               <Editor markdownText={markdownText} setMarkdownText={setMarkdownText} />
             </div>
           </div>
         )}
 
+        {/* Divider */}
         {editorWidth > 0 && editorWidth < 100 && (
           <div
             className="w-0.5 flex items-center justify-center cursor-col-resize bg-gray-700 hover:bg-blue-800 transition-colors"
@@ -104,11 +105,14 @@ The text is parsed in Markdown if you don't know how to write it click on help o
           />
         )}
 
+        {/* Preview */}
         <div
-          className={`h-full overflow-auto ${editorWidth === 0 ? 'px-44 pt-7' : 'px-8 pt-5'} min-w-0`}
+          className="h-full min-w-0 flex flex-col"
           style={{ width: editorWidth === 0 ? '100%' : `${100 - editorWidth}%` }}
         >
-          <Preview markdownText={markdownText} setMarkdownText={setMarkdownText} />
+          <div className="flex-1 min-h-0">
+            <Preview markdownText={markdownText} setMarkdownText={setMarkdownText} />
+          </div>
         </div>
       </div>
     </div>

@@ -1,4 +1,3 @@
-// Preview.jsx
 import parseMarkdown from '@/lib/markdown';
 import React, { useEffect } from 'react';
 
@@ -37,7 +36,7 @@ function Preview({ markdownText, setMarkdownText }) {
 
   return (
     <div
-      className="preview markdown-body h-screen flex-1"
+      className="preview markdown-body h-full w-full overflow-auto pb-40 p-7"
       dangerouslySetInnerHTML={{ __html: parseMarkdown(markdownText) }}
     />
   );
