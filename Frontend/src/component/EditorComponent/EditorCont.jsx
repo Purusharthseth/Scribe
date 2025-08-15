@@ -1,20 +1,21 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Preview from './Preview';
-import { Pencil1Icon, EyeOpenIcon, FileTextIcon } from '@radix-ui/react-icons';
+import { Pencil1Icon, EyeOpenIcon, FileTextIcon, CheckIcon } from '@radix-ui/react-icons';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { Heading, Text, Flex, Box } from '@radix-ui/themes';
+import { Heading, Text, Flex, Box, Spinner } from '@radix-ui/themes';
 import Editor from './Editor';
 import useVaultStore from '@/store/useVaultStore';
 import useAxios from '@/utils/useAxios';
 import debounce from '@/utils/debounce';
 import toast from 'react-hot-toast';
 
-function EditorContainer() {
+function EditorContainer({ vaultName }) {
   const selectedFile = useVaultStore((s) => s.selectedFile);
   const axios = useAxios();
   const [markdownText, setMarkdownText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [editorWidth, setEditorWidth] = useState(50);
+  const [fileChanged, setFileChanged] = useState(false);
   const containerRef = useRef(null);
   const isDraggingRef = useRef(false);
 
@@ -25,13 +26,12 @@ function EditorContainer() {
       try {
         setIsSaving(true);
         await axios.put(`/api/files/${fileId}`, { newContent: content });
-        toast.success("File saved successfully.");
       } catch (error) {
         toast.error("Error updating file.");
       } finally {
         setIsSaving(false);
       }
-    }, 5000),
+    }, 2000),
     [axios]
   );
 
@@ -75,21 +75,23 @@ function EditorContainer() {
         try {
           const response = await axios.get(`/api/files/${selectedFile.id}`);
           setMarkdownText(response.data.data.content || "");
-          setIsSaving(false);
         } catch (error) {
           console.error("Error fetching file:", error);
           setMarkdownText("");
-          setIsSaving(false);
         }
       } else {
         setMarkdownText("");
-        setIsSaving(false);
       }
     };
     fetchFileContent();
+    setFileChanged(true);
   }, [selectedFile?.id, axios]);
 
   useEffect(() => {
+    if(fileChanged){
+      setFileChanged(false);
+      return;
+    }
     if (selectedFile?.id) {
       setIsSaving(true);
       debouncedSave(selectedFile.id, markdownText);
@@ -136,34 +138,76 @@ function EditorContainer() {
       ref={containerRef}
       className="relative flex flex-col w-full h-full bg-gradient-to-br from-[#18181b] to-[#23232a] select-none"
     >
-      <div className="absolute top-2 right-2 z-10">
-        <Tooltip.Provider delayDuration={150}>
-          <Tooltip.Root>
-            <Tooltip.Trigger asChild>
-              <button
-                onClick={() => setEditorWidth(editorWidth === 0 ? 50 : 0)}
-                className="p-2 rounded-md hover:bg-gray-700 transition-colors cursor-pointer"
-              >
-                {editorWidth === 0 ? (
-                  <Pencil1Icon className="text-gray-300 w-5 h-5" />
-                ) : (
-                  <EyeOpenIcon className="text-gray-300 w-5 h-5" />
-                )}
-              </button>
-            </Tooltip.Trigger>
-            <Tooltip.Portal>
-              <Tooltip.Content
-                className="px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded shadow-lg select-none"
-                side="bottom"
-                sideOffset={5}
-              >
-                {editorWidth === 0 ? 'Show editor' : 'Hide editor'}
-                <Tooltip.Arrow className="fill-gray-900" />
-              </Tooltip.Content>
-            </Tooltip.Portal>
-          </Tooltip.Root>
-        </Tooltip.Provider>
+
+      {/* Navigation Bar */}
+      <div className="sticky top-0 z-10 w-full h-10 border-b border-[var(--gray-6)] bg-[var(--gray-3)]/80 backdrop-blur supports-[backdrop-filter]:bg-[var(--gray-3)] flex items-center justify-between px-3 sm:px-4 shadow-[0_1px_0_0_rgba(255,255,255,0.02)]">
+        {/* Left: breadcrumb (vault / file) */}
+        <div className="flex items-center gap-2 min-w-0">
+          <FileTextIcon className="w-4 h-4 text-[var(--accent-10)]" />
+          <div className="flex items-center gap-2 min-w-0">
+            <Text size="2" color="gray" className="truncate max-w-[22ch]">
+              {vaultName || 'Vault'}
+            </Text>
+            <span className="text-[var(--gray-7)]">/</span>
+            <Text
+              size="2"
+              weight="medium"
+              className="truncate max-w-[32ch] text-[var(--gray-12)]"
+              title={selectedFile?.name || 'Untitled'}
+            >
+              {selectedFile?.name || 'Untitled'}
+            </Text>
+          </div>
+        </div>
+
+        {/* Right: status + view toggle */}
+        <div className="flex items-center gap-3">
+          {/* Save status pill */}
+          {isSaving ? (
+            <div className="flex items-center gap-2 rounded-full px-2.5 py-1 border border-[var(--blue-6)] bg-[var(--blue-3)]/40 text-[var(--blue-11)]">
+              <Spinner size="1" />
+              <Text size="1">Saving…</Text>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 rounded-full px-2.5 py-1 border border-[var(--green-6)] bg-[var(--green-3)]/40 text-[var(--green-11)]">
+              <CheckIcon className="w-4 h-4" />
+              <Text size="1">Saved</Text>
+            </div>
+          )}
+
+          {/* View toggle */}
+          <Tooltip.Provider delayDuration={150}>
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <button
+                  onClick={() => setEditorWidth(editorWidth === 0 ? 50 : 0)}
+                  className="p-2 rounded-md hover:bg-[var(--gray-5)] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-8)]"
+                  aria-label={editorWidth === 0 ? 'Show editor' : 'Hide editor'}
+                  title={editorWidth === 0 ? 'Show editor' : 'Hide editor'}
+                >
+                  {editorWidth === 0 ? (
+                    <Pencil1Icon className="text-[var(--gray-11)] w-4 h-4" />
+                  ) : (
+                    <EyeOpenIcon className="text-[var(--gray-11)] w-4 h-4" />
+                  )}
+                </button>
+              </Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Content
+                  className="px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded shadow-lg select-none"
+                  side="bottom"
+                  sideOffset={5}
+                >
+                  {editorWidth === 0 ? 'Show editor' : 'Hide editor'}
+                  <Tooltip.Arrow className="fill-gray-900" />
+                </Tooltip.Content>
+              </Tooltip.Portal>
+            </Tooltip.Root>
+          </Tooltip.Provider>
+        </div>
       </div>
+      {/* Editor and Preview area */}
+
 
       {/* Editor and Preview area */}
       <div className="flex flex-1 min-w-0 min-h-0">

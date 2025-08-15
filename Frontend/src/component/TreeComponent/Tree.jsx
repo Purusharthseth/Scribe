@@ -46,38 +46,13 @@ function isFileInsideFolder(data, fileId, folderId) {
   return parentPath ? parentPath.includes(folderId) : false;
 }
 
-function Tree({vaultId}) {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
+function Tree({vaultId, fileTree}) {
+  const [data, setData] = useState(fileTree);
   const axios = useAxios();
   const [expandedIds, setExpandedIds] = useState(new Set());
   const [selectedNode, setSelectedNode] = useState(null);
   const selectedFile= useVaultStore((s)=>s.selectedFile);
   const setSelectedFile = useVaultStore((s)=>s.setSelectedFile);
-
-  useEffect(() => {
-    if (!vaultId) return;
-    setLoading(true);
-    const controller = new AbortController();
-    (async () => {
-      try {
-        const res = await axios.get(`/api/vaults/${vaultId}`, { 
-          signal: controller.signal 
-        });
-        const tree = res?.data?.data?.file_tree || [];
-        setData(Array.isArray(tree) ? tree : []);
-      } catch (e) {
-        if (e.code !== "ERR_CANCELED") {
-          console.error("Failed to fetch vault tree:", e);
-          setData([]);
-        }
-      } finally {
-        setLoading(false);
-      }
-    })();
-    
-    return () => controller.abort();
-  }, [vaultId]);
 
   const addNode = async (newNodeName, parentId) => {
     if (!newNodeName || newNodeName.trim() === '') {
@@ -216,23 +191,8 @@ function Tree({vaultId}) {
           />
         </Flex>
       </Flex>
-      
-      {selectedFile && (
-        <Box px="4" pb="2">
-          <Text size="1" color="green" className="italic">
-            Selected: {selectedFile.name}
-          </Text>
-        </Box>
-      )}
-      
-      <Separator size="4" />
 
-      {loading ? (
-        <Box p="4">
-          <Text size="2" color="gray">Loading files...</Text>
-        </Box>
-      ) : (
-        data.map((node) => (
+      {data.map((node) => (
         <Node
           key={node.id}
           obj={node}
@@ -246,7 +206,7 @@ function Tree({vaultId}) {
           setSelectedId={setSelectedNode}
         />
         ))
-      )}
+      }
     </Box>
   );
 }
