@@ -1,19 +1,39 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Preview from './Preview';
-import { Pencil1Icon, EyeOpenIcon } from '@radix-ui/react-icons';
+import { Pencil1Icon, EyeOpenIcon, FileTextIcon } from '@radix-ui/react-icons';
 import * as Tooltip from '@radix-ui/react-tooltip';
+import { Heading, Text, Flex, Box } from '@radix-ui/themes';
 import Editor from './Editor';
+import useVaultStore from '@/store/useVaultStore';
+import useAxios from '@/utils/useAxios';
+import debounce from '@/utils/debounce';
+import toast from 'react-hot-toast';
 
 function EditorContainer() {
-  const [markdownText, setMarkdownText] = useState(`# Welcome to Scribe
-
-Write your text on the left, and the readable doc will appear on the right side!
-
-The text is parsed in Markdown. If you don't know how to write it, click on help on the top right!`);
-
+  const selectedFile = useVaultStore((s) => s.selectedFile);
+  const axios = useAxios();
+  const [markdownText, setMarkdownText] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const [editorWidth, setEditorWidth] = useState(50);
   const containerRef = useRef(null);
   const isDraggingRef = useRef(false);
+
+  
+  const debouncedSave = useCallback(
+    debounce(async (fileId, content) => {
+      if (!fileId) return;
+      try {
+        setIsSaving(true);
+        await axios.put(`/api/files/${fileId}`, { newContent: content });
+        toast.success("File saved successfully.");
+      } catch (error) {
+        toast.error("Error updating file.");
+      } finally {
+        setIsSaving(false);
+      }
+    }, 5000),
+    [axios]
+  );
 
   const handleMouseDown = () => {
     isDraggingRef.current = true;
@@ -39,21 +59,83 @@ The text is parsed in Markdown. If you don't know how to write it, click on help
 
   useEffect(() => {
     const editorOnOff = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'e' && selectedFile) {
         e.preventDefault();
         setEditorWidth(prev => prev === 0 ? 50 : 0);
       }
     };
     window.addEventListener('keydown', editorOnOff);
     return () => window.removeEventListener('keydown', editorOnOff);
-  }, []);
+  }, [selectedFile]);
+
+  useEffect(() => {
+    if (!selectedFile) return;
+    const fetchFileContent = async () => {
+      if (selectedFile?.id) {
+        try {
+          const response = await axios.get(`/api/files/${selectedFile.id}`);
+          setMarkdownText(response.data.data.content || "");
+          setIsSaving(false);
+        } catch (error) {
+          console.error("Error fetching file:", error);
+          setMarkdownText("");
+          setIsSaving(false);
+        }
+      } else {
+        setMarkdownText("");
+        setIsSaving(false);
+      }
+    };
+    fetchFileContent();
+  }, [selectedFile?.id, axios]);
+
+  useEffect(() => {
+    if (selectedFile?.id) {
+      setIsSaving(true);
+      debouncedSave(selectedFile.id, markdownText);
+    }
+  }, [markdownText]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isSaving) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return 'You have unsaved changes. Are you sure you want to leave?';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isSaving]);
+
+  if (!selectedFile) {
+    return (
+      <Flex direction="column" align="center" justify="center" className="h-full">
+        <Box className="text-center">
+          <div className="bg-[var(--accent-3)] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <FileTextIcon className="w-8 h-8 text-[var(--accent-11)]" />
+          </div>
+          <Heading size="6" mb="2" className="text-[var(--accent-11)]">
+            Welcome to Scribe
+          </Heading>
+          <Text size="3" color="gray" mb="4">
+            Select a file from the tree to start editing
+          </Text>
+          
+          <Text size="2" color="gray">
+            Type on left and view result on right
+          </Text>
+        </Box>
+      </Flex>
+    );
+  }
 
   return (
     <div
       ref={containerRef}
       className="relative flex flex-col w-full h-full bg-gradient-to-br from-[#18181b] to-[#23232a] select-none"
     >
-      {/* Floating toggle button */}
       <div className="absolute top-2 right-2 z-10">
         <Tooltip.Provider delayDuration={150}>
           <Tooltip.Root>
@@ -96,16 +178,12 @@ The text is parsed in Markdown. If you don't know how to write it, click on help
             </div>
           </div>
         )}
-
-        {/* Divider */}
         {editorWidth > 0 && editorWidth < 100 && (
           <div
             className="w-0.5 flex items-center justify-center cursor-col-resize bg-gray-700 hover:bg-blue-800 transition-colors"
             onMouseDown={handleMouseDown}
           />
         )}
-
-        {/* Preview */}
         <div
           className="h-full min-w-0 flex flex-col"
           style={{ width: editorWidth === 0 ? '100%' : `${100 - editorWidth}%` }}
