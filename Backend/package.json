@@ -19,6 +19,7 @@
     "dotenv": "^17.2.1",
     "drizzle-orm": "^0.44.3",
     "express": "^5.1.0",
+    "nanoid": "^5.1.5",
     "pg": "^8.16.3"
   },
   "devDependencies": {

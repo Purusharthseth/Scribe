@@ -1,18 +1,21 @@
 import useAxios from '@/utils/useAxios';
 import React, { useEffect, useState } from 'react';
-import { PlusIcon, DotsVerticalIcon, Pencil1Icon, TrashIcon } from '@radix-ui/react-icons';
+import { PlusIcon, DotsVerticalIcon, Pencil1Icon, TrashIcon, ReloadIcon, Link2Icon, CopyIcon, CheckIcon, Share1Icon } from '@radix-ui/react-icons';
 import { Link } from 'react-router-dom';
-import { Button, Card, Text, Heading, Flex, Box, Spinner, Dialog, TextField, DropdownMenu, AlertDialog } from '@radix-ui/themes';
+import { Button, Card, Text, Heading, Flex, Box, Spinner, Dialog, TextField, DropdownMenu, Badge, Select } from '@radix-ui/themes';
+import toast from 'react-hot-toast';
 
 function Home() {
   const [vaults, setVaults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [vaultName, setVaultName] = useState('');
-  const [editingVault, setEditingVault] = useState(null);
-  const [deletingVault, setDeletingVault] = useState(null);
+  const [clickedVault, setClickedVault] = useState(null);
+  const [clickedAction, setClickedAction] = useState(null); // 'edit' | 'delete' | 'share' | null
+  const [shareMode, setShareMode] = useState('private');
+  const [isUpdatingShare, setIsUpdatingShare] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [nameError, setNameError] = useState(true);
   const axiosInstance = useAxios();
 
@@ -52,56 +55,94 @@ function Home() {
   };
 
   const handleEditVault = (vault) => {
-    setEditingVault(vault);
-    setVaultName(vault.name);
-    setIsEditDialogOpen(true);
+    setClickedVault(vault);
+    setVaultName(vault.name || '');
+    setClickedAction('edit');
   };
 
   const handleUpdateVault = () => {
-    if (!vaultName.trim() || !editingVault) return;
-    axiosInstance.put(`/api/vaults/${editingVault.id}/name`, { name: vaultName })
+    if (!vaultName.trim() || !clickedVault) return;
+    axiosInstance.put(`/api/vaults/${clickedVault.id}/name`, { name: vaultName })
       .then(() => {
         fetchVaults();
       }).catch(error => {
         console.error("Failed to update vault:", error);
       }).finally(() => {
-        console.log("Updating vault:", { id: editingVault.id, name: vaultName });
         setVaultName('');
-        setEditingVault(null);
         setNameError(true);
-        setIsEditDialogOpen(false);
+        setClickedVault(null);
+        setClickedAction(null);
       });
   };
 
   const handleDeleteVault = (vault) => {
-    setDeletingVault(vault);
-    setIsDeleteDialogOpen(true);
+    setClickedVault(vault);
+    setClickedAction('delete');
+  };
+  
+  const openShareDialog = (vault) => {
+    setClickedVault(vault);
+    setShareMode(vault.share_mode || 'private');
+    setClickedAction('share');
+  };
+
+  const updateShareMode = async (mode) => {
+    if (!clickedVault) return;
+    try {
+      setIsUpdatingShare(true);
+      const res = await axiosInstance.put(`/api/vaults/${clickedVault.id}/shareMode`, { shareMode: mode });
+      const updated = res.data.data;
+      setVaults((prev) => prev.map((v) => (v.id === updated.id ? updated : v)));
+      setClickedVault(updated);
+      setShareMode(updated.share_mode || 'private');
+    } catch (error) {
+      toast.error('Failed to update share mode');
+    } finally {
+      setIsUpdatingShare(false);
+    }
+  };
+
+  const regenerateToken = async () => {
+    if (!clickedVault) return;
+    try {
+      setIsRegenerating(true);
+      const res = await axiosInstance.put(`/api/vaults/${clickedVault.id}/shareToken`);
+      const updated = res.data.data;
+      setVaults((prev) => prev.map((v) => (v.id === updated.id ? updated : v)));
+      setClickedVault(updated);
+    } catch (error) {
+      console.error('Failed to regenerate token:', error.response?.data || error);
+    } finally {
+      setIsRegenerating(false);
+    }
   };
 
   const confirmDeleteVault = () => {
-    if (!deletingVault) return;
-    axiosInstance.delete(`/api/vaults/${deletingVault.id}`)
+    if (!clickedVault) return;
+    axiosInstance.delete(`/api/vaults/${clickedVault.id}`)
       .then(() => {
         fetchVaults();
       }).catch(error => {
         console.error("Failed to delete vault:", error.response?.data || error);
       }).finally(() => {
-        console.log("Deleting vault:", { id: deletingVault.id });
-        setDeletingVault(null);
-        setIsDeleteDialogOpen(false);
+        setClickedVault(null);
+        setClickedAction(null);
       });
   };
 
   const resetDialogs = () => {
     setVaultName('');
-    setEditingVault(null);
-    setDeletingVault(null);
+    setClickedVault(null);
+    setClickedAction(null);
+    setShareMode('private');
+    setIsUpdatingShare(false);
+    setIsRegenerating(false);
+    setCopied(false);
     setNameError(true);
   };
 
   return (
     <Box p="8" className="max-w-7xl mx-auto">
-      {/* Header Section */}
       <Flex justify="between" align="center" mb="12" className="border-b border-[var(--gray-6)] pb-8">
         <div>
           <Heading size="8" className="text-[var(--accent-11)] mb-2">Your Vaults</Heading>
@@ -154,66 +195,134 @@ function Home() {
         </Dialog.Root>
       </Flex>
 
-      {/* Edit Vault Dialog */}
-      <Dialog.Root open={isEditDialogOpen} onOpenChange={(open) => { setIsEditDialogOpen(open); if (!open) resetDialogs(); }}>
-        <Dialog.Content maxWidth="480px" className="shadow-2xl">
-          <Dialog.Title size="6" className="text-[var(--accent-11)]">Edit Vault</Dialog.Title>
-          <Dialog.Description size="3" mb="6" color="gray">
-            Update your vault name.
-          </Dialog.Description>
-          <Flex direction="column" gap="4">
-            <label>
-              <Text as="div" size="3" mb="2" weight="medium" className="text-[var(--accent-11)]">
-                Vault Name
-              </Text>
-              <TextField.Root
-                size="3"
-                placeholder="Enter a descriptive name..."
-                value={vaultName}
-                onChange={(e) => setVaultName(e.target.value)}
-                className="focus:ring-2 focus:ring-[var(--accent-8)]"
-              />
-            </label>
-            {nameError && (
-              <Text color="red" size="2" weight="medium">The vault name cannot be empty</Text>
-            )}
-          </Flex>
-          <Flex gap="3" mt="6" justify="end">
-            <Dialog.Close>
-              <Button variant="soft" color="gray" size="3">
-                Cancel
-              </Button>
-            </Dialog.Close>
-            <Dialog.Close>
-              <Button disabled={nameError} onClick={handleUpdateVault} size="3" className="shadow-md">
-                Update Vault
-              </Button>
-            </Dialog.Close>
-          </Flex>
+      {/* Unified Vault Action Dialog */}
+      <Dialog.Root open={!!clickedAction} onOpenChange={(open) => { if (!open) resetDialogs(); }}>
+        <Dialog.Content maxWidth="560px" className="shadow-2xl">
+          {clickedAction === 'edit' && (
+            <>
+              <Dialog.Title size="6" className="text-[var(--accent-11)]">Edit Vault</Dialog.Title>
+              <Dialog.Description size="3" mb="6" color="gray">
+                Update your vault name.
+              </Dialog.Description>
+              <Flex direction="column" gap="4">
+                <label>
+                  <Text as="div" size="3" mb="2" weight="medium" className="text-[var(--accent-11)]">
+                    Vault Name
+                  </Text>
+                  <TextField.Root
+                    size="3"
+                    placeholder="Enter a descriptive name..."
+                    value={vaultName}
+                    onChange={(e) => setVaultName(e.target.value)}
+                    className="focus:ring-2 focus:ring-[var(--accent-8)]"
+                  />
+                </label>
+                {nameError && (
+                  <Text color="red" size="2" weight="medium">The vault name cannot be empty</Text>
+                )}
+              </Flex>
+              <Flex gap="3" mt="6" justify="end">
+                <Dialog.Close>
+                  <Button variant="soft" color="gray" size="3">
+                    Cancel
+                  </Button>
+                </Dialog.Close>
+                <Dialog.Close>
+                  <Button disabled={nameError} onClick={handleUpdateVault} size="3" className="shadow-md">
+                    Update Vault
+                  </Button>
+                </Dialog.Close>
+              </Flex>
+            </>
+          )}
+
+          {clickedAction === 'delete' && (
+            <>
+              <Dialog.Title size="6" className="text-[var(--accent-11)]">Delete Vault</Dialog.Title>
+              <Dialog.Description size="3" mb="6" color="gray">
+                Are you sure you want to delete <strong>{clickedVault?.name}</strong>? This action cannot be undone.
+              </Dialog.Description>
+              <Flex gap="3" mt="6" justify="end">
+                <Dialog.Close>
+                  <Button variant="soft" color="gray" size="3">Cancel</Button>
+                </Dialog.Close>
+                <Dialog.Close>
+                  <Button variant="solid" color="red" onClick={confirmDeleteVault}>Delete Vault</Button>
+                </Dialog.Close>
+              </Flex>
+            </>
+          )}
+
+          {clickedAction === 'share' && (
+            <>
+              <Flex justify="between" align="center" mb="3">
+                <Dialog.Title size="6" className="text-[var(--accent-11)]">Share Vault</Dialog.Title>
+                {clickedVault && (
+                  <Badge color={shareMode === 'edit' ? 'green' : shareMode === 'view' ? 'blue' : 'gray'} variant="soft" radius="full">
+                    {shareMode.toUpperCase()}
+                  </Badge>
+                )}
+              </Flex>
+              <Dialog.Description size="3" mb="5" color="gray">
+                Choose who can access this vault. No link is shown in Private mode.
+              </Dialog.Description>
+              <Flex direction="column" gap="5">
+                <div>
+                  <Text as="div" size="3" mb="2" weight="medium" className="text-[var(--accent-11)]">Share mode</Text>
+                  <Select.Root value={shareMode} onValueChange={updateShareMode} disabled={isUpdatingShare || !clickedVault}>
+                    <Select.Trigger placeholder="Select mode" />
+                    <Select.Content>
+                      <Select.Item value="private">Private</Select.Item>
+                      <Select.Item value="view">View (anyone with the link)</Select.Item>
+                      <Select.Item value="edit">Edit (anyone with the link)</Select.Item>
+                    </Select.Content>
+                  </Select.Root>
+                  {isUpdatingShare && <Text size="2" color="gray" className="mt-2">Updating…</Text>}
+                </div>
+                {clickedVault && shareMode !== 'private' && clickedVault.share_token ? (
+                  <Box className="border border-[var(--gray-6)] bg-[var(--gray-2)] rounded-md p-3">
+                    <Flex align="center" gap="2" mb="2">
+                      <Link2Icon width="16" height="16" className="text-[var(--accent-10)]" />
+                      <Text weight="medium">Share link</Text>
+                    </Flex>
+                    <Flex gap="2" align="center">
+                      <TextField.Root
+                        readOnly
+                        value={`${window.location.origin}/vault/${clickedVault.id}?shareToken=${clickedVault.share_token}`}
+                        className="flex-1"
+                      />
+                      <Button
+                        variant="soft"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(`${window.location.origin}/vault/${clickedVault.id}?shareToken=${clickedVault.share_token}`);
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 2000);
+                          } catch {}
+                        }}
+                      >
+                        {copied ? <CheckIcon width="14" height="14" /> : <CopyIcon width="14" height="14" />}
+                        {copied ? 'Copied' : 'Copy'}
+                      </Button>
+                      <Button variant="soft" color="gray" disabled={isRegenerating} onClick={regenerateToken}>
+                        <ReloadIcon width="14" height="14" />
+                        {isRegenerating ? 'Regenerating…' : 'Regenerate'}
+                      </Button>
+                    </Flex>
+                  </Box>
+                ) : (
+                  <Text size="2" color="gray">No link available in Private mode.</Text>
+                )}
+              </Flex>
+              <Flex gap="3" mt="6" justify="end">
+                <Dialog.Close>
+                  <Button variant="soft" color="gray" size="3">Close</Button>
+                </Dialog.Close>
+              </Flex>
+            </>
+          )}
         </Dialog.Content>
       </Dialog.Root>
-
-      {/* Delete Vault Dialog */}
-      <AlertDialog.Root open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialog.Content maxWidth="450px">
-          <AlertDialog.Title>Delete Vault</AlertDialog.Title>
-          <AlertDialog.Description size="2">
-            Are you sure you want to delete <strong >{deletingVault?.name}</strong>? This action cannot be undone and all documents in this vault will be lost.
-          </AlertDialog.Description>
-          <Flex gap="3" mt="4" justify="end">
-            <AlertDialog.Cancel>
-              <Button variant="soft" color="gray">
-                Cancel
-              </Button>
-            </AlertDialog.Cancel>
-            <AlertDialog.Action>
-              <Button variant="solid" color="red" onClick={confirmDeleteVault}>
-                Delete Vault
-              </Button>
-            </AlertDialog.Action>
-          </Flex>
-        </AlertDialog.Content>
-      </AlertDialog.Root>
 
       {/* Content Section */}
       {loading ? (
@@ -260,6 +369,10 @@ function Home() {
                       <DropdownMenu.Item onClick={() => handleEditVault(vault)} className='cursor-pointer'>
                         <Pencil1Icon width="14" height="14" />
                         Edit Name
+                      </DropdownMenu.Item>
+                      <DropdownMenu.Item onClick={() => openShareDialog(vault)} className='cursor-pointer'>
+                        <Share1Icon width="14" height="14" />
+                        Share
                       </DropdownMenu.Item>
                       <DropdownMenu.Separator />
                       <DropdownMenu.Item color="red" onClick={() => handleDeleteVault(vault)} className='cursor-pointer'>

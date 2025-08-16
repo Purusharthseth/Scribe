@@ -2,30 +2,27 @@ import { text, jsonb, timestamp, index } from 'drizzle-orm/pg-core';
 import { pgTable } from 'drizzle-orm/pg-core';
 import { createId } from '@paralleldrive/cuid2';
 
-// Vaults with file_tree JSONB and simplified sharing
 export const vaults = pgTable('vaults', {
   id: text('id').primaryKey().$defaultFn(() => createId()),
-  owner_id: text('owner_id').notNull(), // Clerk user_id
+  owner_id: text('owner_id').notNull(), 
   name: text('name').notNull(),
-  file_tree: jsonb('file_tree').notNull().default([]), // Full cached hierarchy
-  share_mode: text('share_mode', { enum: ['private', 'view', 'edit'] }).default('private'), // Simplified sharing
-  share_token: text('share_token').unique(), // Only for share_mode != 'private'
+  file_tree: jsonb('file_tree').notNull().default([]), 
+  share_mode: text('share_mode', { enum: ['private', 'view', 'edit'] }).default('private'), 
+  share_token: text('share_token').unique(), 
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
-  // Indexes for vaults
   ownerIndex: index('idx_vaults_owner_id').on(table.owner_id),
 }));
 
 export const folders = pgTable('folders', {
   id: text('id').primaryKey().$defaultFn(() => createId()),
-  vault_id: text('vault_id').references(() => vaults.id, { onDelete: 'cascade' }), // Required for root folders
-  parent_id: text('parent_id').references(() => folders.id, { onDelete: 'cascade' }), // Nullable (root if null)
+  vault_id: text('vault_id').references(() => vaults.id, { onDelete: 'cascade' }), 
+  parent_id: text('parent_id').references(() => folders.id, { onDelete: 'cascade' }), 
   name: text('name').notNull(),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
-  // Indexes for folders
   vaultIndex: index('idx_folders_vault_id').on(table.vault_id),
   parentIndex: index('idx_folders_parent_id').on(table.parent_id),
 }));
@@ -39,7 +36,6 @@ export const files = pgTable('files', {
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
-  // Indexes for files
   vaultIndex: index('idx_files_vault_id').on(table.vault_id),
   folderIndex: index('idx_files_folder_id').on(table.folder_id),
 }));
