@@ -1,33 +1,29 @@
-import useVaultStore from "@/store/useVaultStore";
 import React, { useState, useRef, useEffect } from "react";
 import { FaCaretDown, FaCaretUp } from "react-icons/fa";
 import { MdDeleteOutline, MdEdit } from "react-icons/md";
+import { useTreeStore } from "@/store/useTreeStore";
+import useVaultStore from "@/store/useVaultStore";
 
-function Node({
-  obj,
-  addNode,
-  deleteNode,
-  editNode,
-  addFolder,
-  expandedIds,
-  setExpandedIds,
-  selectedId,
-  setSelectedId,
-}) {
+function Node({ obj }) {
   const [addingNode, setAddingNode] = useState(false);
   const [addingFolder, setAddingFolder] = useState(false);
   const [editing, setEditing] = useState(false);
   const inputRef = useRef(null);
-  const setSelectedFile = useVaultStore((s)=>s.setSelectedFile);
 
-  const isExpanded = expandedIds.has(obj.id);
+  const isExpanded = useTreeStore((s) => s.expandedIds.has(obj.id));
+  const selectedId = useTreeStore((s) => s.selectedId);
+
+  const toggleExpand = useTreeStore((s) => s.toggleExpand);
+  const select = useTreeStore((s) => s.select);
+
+  const addNode = useTreeStore((s) => s.addNode);
+  const addFolder = useTreeStore((s) => s.addFolder);
+  const editNode = useTreeStore((s) => s.editNode);
+  const deleteNode = useTreeStore((s) => s.deleteNode);
+
+  const setSelectedFile = useVaultStore((s) => s.setSelectedFile);
+
   const isSelected = selectedId === obj.id;
-
-  const toggleCollapse = () => {
-    const updated = new Set(expandedIds);
-    isExpanded ? updated.delete(obj.id) : updated.add(obj.id);
-    setExpandedIds(updated);
-  };
 
   const handleOutsideClick = (cb) => {
     const handler = (e) => {
@@ -51,28 +47,22 @@ function Node({
 
   const addN = async (e) => {
     e.preventDefault();
-    const success = await addNode(e.target[0].value, obj.id);
-    if (success) {
-      setAddingNode(false);
-    }
+    const ok = await addNode(e.target[0].value, obj.id);
+    if (ok) setAddingNode(false);
   };
 
   const addF = async (e) => {
     e.preventDefault();
-    const success = await addFolder(e.target[0].value, obj.id);
-    if (success) {
-      setAddingFolder(false);
-    }
+    const ok = await addFolder(e.target[0].value, obj.id);
+    if (ok) setAddingFolder(false);
   };
 
   const del = () => deleteNode(obj.id, obj.type);
 
   const edit = async (e) => {
     e.preventDefault();
-    const success = await editNode(obj.id, e.target[0].value, obj.type);
-    if (success) {
-      setEditing(false);
-    }
+    const ok = await editNode(obj.id, e.target[0].value, obj.type);
+    if (ok) setEditing(false);
   };
 
   return (
@@ -82,10 +72,12 @@ function Node({
           isSelected ? "bg-[var(--blue-9)] text-white" : "hover:bg-[var(--gray-3)]"
         }`}
         onClick={() => {
-          setSelectedId(obj);
+          select(obj);
           if (obj.type === "folder") {
-            toggleCollapse();
-          } else setSelectedFile(obj);
+            toggleExpand(obj.id);
+          } else {
+            setSelectedFile(obj);
+          }
         }}
       >
         {obj.type === "folder" && (
@@ -93,7 +85,7 @@ function Node({
             className="text-[var(--gray-9)] hover:text-[var(--blue-9)] mr-1"
             onClick={(e) => {
               e.stopPropagation();
-              toggleCollapse();
+              toggleExpand(obj.id);
             }}
           >
             {isExpanded ? <FaCaretDown /> : <FaCaretUp />}
@@ -116,7 +108,6 @@ function Node({
           <span className="truncate">{obj.name}</span>
         )}
 
-        {/* Right-side action buttons */}
         {!editing && (
           <div className="absolute right-2 top-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
@@ -174,18 +165,7 @@ function Node({
       {isExpanded && obj.type === "folder" && (
         <div className="ml-4 mt-1">
           {obj.children && obj.children.map((node) => (
-            <Node
-              key={node.id}
-              obj={node}
-              addNode={addNode}
-              deleteNode={deleteNode}
-              editNode={editNode}
-              addFolder={addFolder}
-              expandedIds={expandedIds}
-              setExpandedIds={setExpandedIds}
-              selectedId={selectedId}
-              setSelectedId={setSelectedId}
-            />
+            <Node key={node.id} obj={node} />
           ))}
         </div>
       )}

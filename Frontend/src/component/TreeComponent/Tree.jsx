@@ -1,30 +1,31 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Node from "./Node";
 import { AiFillFileAdd, AiOutlineFolderAdd } from "react-icons/ai";
-import { Box, Flex, Text, Separator } from '@radix-ui/themes';
+import { Box, Flex, Text } from '@radix-ui/themes';
 import useAxios from '@/utils/useAxios';
 import useVaultStore from '@/store/useVaultStore';
 import toast from 'react-hot-toast';
+import { useTreeStore } from '@/store/useTreeStore';
 
 function findAllAncestorIds(data, targetId) {
   let res = [];
-  function dfs(nodes) { 
+  function dfs(nodes) {
     for (let node of nodes) {
       res.push(node.id);
       if (node.id === targetId) {
-        res.pop(); 
+        res.pop();
         return true;
       }
       if (node.type === "folder" && node.children) {
         if (dfs(node.children)) {
-          return true; 
+          return true;
         }
       }
       res.pop();
     }
     return false;
   }
-  if(!dfs(data)) console.log("Node not found.");
+  if (!dfs(data)) console.log("Node not found.");
   return res;
 }
 
@@ -41,20 +42,19 @@ function isFileInsideFolder(data, fileId, folderId) {
     }
     return null;
   }
-
   const parentPath = findFileParentPath(data, fileId);
   return parentPath ? parentPath.includes(folderId) : false;
 }
 
-function Tree({vaultId, fileTree}) {
+function Tree({ vaultId, fileTree }) {
   const [data, setData] = useState(fileTree);
   const axios = useAxios();
-  const [expandedIds, setExpandedIds] = useState(new Set());
-  const [selectedNode, setSelectedNode] = useState(null);
-  const selectedFile= useVaultStore((s)=>s.selectedFile);
-  const setSelectedFile = useVaultStore((s)=>s.setSelectedFile);
+  const selectedFile = useVaultStore((s) => s.selectedFile);
+  const setSelectedFile = useVaultStore((s) => s.setSelectedFile);
+  const expandMany = useTreeStore((s) => s.expandMany);
+  const initStore = useTreeStore((s) => s.init);
 
-  const addNode = async (newNodeName, parentId) => {
+  const addNode = useCallback(async (newNodeName, parentId) => {
     if (!newNodeName || newNodeName.trim() === '') {
       toast.error('File name cannot be empty');
       return false;
@@ -64,86 +64,26 @@ function Tree({vaultId, fileTree}) {
         vaultId,
         name: newNodeName.trim(),
         content: '',
-        folderId: parentId || null
+        folderId: parentId || null,
       });
-      setData(res.data.data.file_tree);
-      
+      const newTree = res.data?.data?.file_tree || [];
+      setData(newTree);
+
       if (parentId) {
-        const ancestorIds = findAllAncestorIds(res.data.data.file_tree, parentId);
-        setExpandedIds(prev => new Set([...prev, parentId, ...ancestorIds]));
+        const ancestorIds = findAllAncestorIds(newTree, parentId);
+        expandMany([parentId, ...ancestorIds]);
       }
-      return true; 
+      return true;
     } catch (e) {
       console.error("Failed to add file:", e);
       console.error("Error details:", e.response?.data);
       toast.error('Failed to create file');
       return false;
     }
-  };
+  }, [axios, vaultId]);
 
-  const deleteNode = async (nodeId, nodeType) => {
-    const shouldClearSelectedFile = selectedFile && (
-      (nodeType === "file" && selectedFile.id === nodeId) ||
-      (nodeType === "folder" && isFileInsideFolder(data, selectedFile.id, nodeId))
-    );
-    if (selectedNode && selectedNode.id === nodeId) {
-      setSelectedNode(null);
-    }
-    
-    try {
-      let res;
-      if (nodeType === "folder") {
-        res = await axios.delete(`/api/folders/${nodeId}`, {
-          data: { vaultId }
-        });
-      } else {
-        res = await axios.delete(`/api/files/${nodeId}`, {
-          data: { vaultId }
-        });
-      }
-      setData(res.data.data.file_tree);
-      if (shouldClearSelectedFile) {
-        setSelectedFile(null);
-        console.log("Cleared selected file due to deletion");
-      }
-    } catch (e) {
-      toast.error(`Failed to delete ${nodeType}`);
-      console.error("Failed to delete node:", e);
-      console.error("Error details:", e.response?.data);
-    }
-  };
-
-  const editNode = async (nodeId, newName, nodeType) => {
-    if (!newName || newName.trim() === '') {
-      const itemType = nodeType === "folder" ? "Folder" : "File";
-      toast.error(`${itemType} name cannot be empty`);
-      return false; 
-    }
-    try {
-      let res;
-      if (nodeType === "folder") {
-        res = await axios.put(`/api/folders/${nodeId}/name`, {
-          vaultId,
-          newName: newName.trim()
-        });
-      } else {
-        res = await axios.put(`/api/files/${nodeId}/name`, {
-          vaultId,
-          newName: newName.trim()
-        });
-      }
-      setData(res.data.data.file_tree);
-      return true; 
-    } catch (e) {
-      console.error("Failed to edit node:", e);
-      console.error("Error details:", e.response?.data);
-      const itemType = nodeType === "folder" ? "folder" : "file";
-      toast.error(`Failed to rename ${itemType}`);
-      return false;
-    }
-  };
-
-  const addFolder = async (newFolderName, parentId) => {
+  // ---- addFolder ----
+  const addFolder = useCallback(async (newFolderName, parentId) => {
     if (!newFolderName || newFolderName.trim() === '') {
       toast.error('Folder name cannot be empty');
       return false;
@@ -152,12 +92,14 @@ function Tree({vaultId, fileTree}) {
       const res = await axios.post('/api/folders', {
         vaultId,
         name: newFolderName.trim(),
-        parentId: parentId || null
+        parentId: parentId || null,
       });
-      setData(res.data.data.file_tree);
+      const newTree = res.data?.data?.file_tree || [];
+      setData(newTree);
+
       if (parentId) {
-        const ancestorIds = findAllAncestorIds(res.data.data.file_tree, parentId);
-        setExpandedIds(prev => new Set([...prev, parentId, ...ancestorIds]));
+        const ancestorIds = findAllAncestorIds(newTree, parentId);
+        expandMany([parentId, ...ancestorIds]);
       }
       return true;
     } catch (e) {
@@ -166,7 +108,74 @@ function Tree({vaultId, fileTree}) {
       toast.error('Failed to create folder');
       return false;
     }
-  };
+  }, [axios, vaultId]);
+
+  // ---- editNode ----
+  const editNode = useCallback(async (nodeId, newName, nodeType) => {
+    if (!newName || newName.trim() === '') {
+      const itemType = nodeType === "folder" ? "Folder" : "File";
+      toast.error(`${itemType} name cannot be empty`);
+      return false;
+    }
+    try {
+      let res;
+      if (nodeType === "folder") {
+        res = await axios.put(`/api/folders/${nodeId}/name`, {
+          vaultId,
+          newName: newName.trim(),
+        });
+      } else {
+        res = await axios.put(`/api/files/${nodeId}/name`, {
+          vaultId,
+          newName: newName.trim(),
+        });
+      }
+      const newTree = res.data?.data?.file_tree || [];
+      setData(newTree);
+      return true;
+    } catch (e) {
+      console.error("Failed to edit node:", e);
+      console.error("Error details:", e.response?.data);
+      const itemType = nodeType === "folder" ? "folder" : "file";
+      toast.error(`Failed to rename ${itemType}`);
+      return false;
+    }
+  }, [axios, vaultId]);
+
+  // ---- deleteNode ----
+  const deleteNode = useCallback(async (nodeId, nodeType) => {
+    const currentData = data;
+
+    const shouldClearSelectedFile =
+      selectedFile &&
+      ((nodeType === "file" && selectedFile.id === nodeId) ||
+       (nodeType === "folder" && isFileInsideFolder(currentData, selectedFile.id, nodeId)));
+
+    try {
+      let res;
+      if (nodeType === "folder") {
+        res = await axios.delete(`/api/folders/${nodeId}`, { data: { vaultId } });
+      } else {
+        res = await axios.delete(`/api/files/${nodeId}`, { data: { vaultId } });
+      }
+      const newTree = res.data?.data?.file_tree || [];
+      setData(newTree);
+
+      if (shouldClearSelectedFile) {
+        setSelectedFile(null);
+        const selectedId = useTreeStore.getState().selectedId;
+        if (selectedId === nodeId) useTreeStore.getState().select(null);
+      }
+    } catch (e) {
+      toast.error(`Failed to delete ${nodeType}`);
+      console.error("Failed to delete node:", e);
+      console.error("Error details:", e.response?.data);
+    }
+  }, [axios, vaultId, data, selectedFile, setSelectedFile]);
+
+  useEffect(() => {
+    initStore({ addNode, addFolder, editNode, deleteNode });
+  }, [initStore, addNode, addFolder, editNode, deleteNode]);
 
   return (
     <Box pt="3" className="text-sm font-medium text-[var(--gray-11)]">
@@ -177,7 +186,17 @@ function Tree({vaultId, fileTree}) {
             className="cursor-pointer hover:text-[var(--blue-9)]"
             title="Add File"
             onClick={() => {
-              const parentId = selectedNode?.type === "folder" ? selectedNode.id : null;
+              const selectedId = useTreeStore.getState().selectedId;
+              const parentId = (() => {
+                if (!selectedId) return null;
+                const temp = [...data];
+                while (temp.length) {
+                  const n = temp.pop();
+                  if (n.id === selectedId) return n.type === 'folder' ? n.id : null;
+                  if (n.type === 'folder' && n.children) temp.push(...n.children);
+                }
+                return null;
+              })();
               addNode("new_file.md", parentId);
             }}
           />
@@ -185,7 +204,17 @@ function Tree({vaultId, fileTree}) {
             className="cursor-pointer hover:text-[var(--blue-9)]"
             title="Add Folder"
             onClick={() => {
-              const parentId = selectedNode?.type === "folder" ? selectedNode.id : null;
+              const selectedId = useTreeStore.getState().selectedId;
+              const parentId = (() => {
+                if (!selectedId) return null;
+                const temp = [...data];
+                while (temp.length) {
+                  const n = temp.pop();
+                  if (n.id === selectedId) return n.type === 'folder' ? n.id : null;
+                  if (n.type === 'folder' && n.children) temp.push(...n.children);
+                }
+                return null;
+              })();
               addFolder("New Folder", parentId);
             }}
           />
@@ -193,20 +222,8 @@ function Tree({vaultId, fileTree}) {
       </Flex>
 
       {data.map((node) => (
-        <Node
-          key={node.id}
-          obj={node}
-          addNode={addNode}
-          deleteNode={deleteNode}
-          editNode={editNode}
-          addFolder={addFolder}
-          expandedIds={expandedIds}
-          setExpandedIds={setExpandedIds}
-          selectedId={selectedNode?.id || null}
-          setSelectedId={setSelectedNode}
-        />
-        ))
-      }
+        <Node key={node.id} obj={node} />
+      ))}
     </Box>
   );
 }
