@@ -5,6 +5,24 @@ import ApiResponse from "../utils/ApiResponse.js";
 import { vaults, files } from "../db/schema.js";
 import { and, eq, or, ne } from "drizzle-orm";
 
+// Socket.IO instance for emitting events
+let socketIO;
+
+// Function to set socket instance
+export const setSocketIO = (io) => {
+  socketIO = io;
+};
+
+// Helper to emit file tree updates
+const emitFileTreeUpdate = (vaultId, fileTree) => {
+  if (socketIO) {
+    socketIO.to(`vault:${vaultId}`).emit("file-tree:updated", {
+      fileTree,
+      timestamp: new Date().toISOString()
+    });
+  }
+};
+
 // HELPERS
 const addFileToTree = (tree, newFile, parentFolderId = null) => {
   const fileNode = { id: newFile.id, name: newFile.name, type: "file" };
@@ -169,6 +187,9 @@ const addFile = AsyncHandler(async (req, res) => {
       .set({ file_tree: updatedTree, updated_at: new Date() })
       .where(eq(vaults.id, vaultId));
 
+    // Emit socket event for file tree update
+    emitFileTreeUpdate(vaultId, updatedTree);
+
     res
       .status(201)
       .json(
@@ -228,6 +249,9 @@ const updateFileName = AsyncHandler(async (req, res) => {
       .set({ file_tree: updatedTree, updated_at: new Date() })
       .where(eq(vaults.id, vaultId));
 
+    // Emit socket event for file tree update
+    emitFileTreeUpdate(vaultId, updatedTree);
+
     return res.status(200).json(new ApiResponse(200, { file_tree: updatedTree }, "File name updated successfully."));
   });
 });
@@ -274,9 +298,10 @@ const deleteFile = AsyncHandler(async (req, res) => {
       .set({ file_tree: updatedTree, updated_at: new Date() })
       .where(eq(vaults.id, vaultId));
 
-    res
-      .status(200)
-      .json(new ApiResponse(200, { file_tree: updatedTree }, "File deleted successfully."));
+    // Emit socket event for file tree update
+    emitFileTreeUpdate(vaultId, updatedTree);
+
+    return res.status(200).json(new ApiResponse(200, { file_tree: updatedTree }, "File deleted successfully."));
   });
 });
 
