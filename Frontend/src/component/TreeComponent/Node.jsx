@@ -9,6 +9,9 @@ function Node({ obj }) {
   const [addingFolder, setAddingFolder] = useState(false);
   const [editing, setEditing] = useState(false);
   const inputRef = useRef(null);
+  const isOwner = useVaultStore((s) => s.isOwner);
+  const shareMode = useVaultStore((s) => s.shareMode);
+  const canEdit = isOwner || shareMode === 'edit';
 
   const isExpanded = useTreeStore((s) => s.expandedIds.has(obj.id));
   const selectedId = useTreeStore((s) => s.selectedId);
@@ -108,7 +111,7 @@ function Node({ obj }) {
           <span className="truncate">{obj.name}</span>
         )}
 
-        {!editing && (
+        {!editing && canEdit && (
           <div className="absolute right-2 top-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               className="hover:text-[var(--yellow-9)] cursor-pointer"
@@ -134,7 +137,7 @@ function Node({ obj }) {
         )}
       </div>
 
-      {addingNode && (
+      {addingNode && canEdit && (
         <form onSubmit={addN} className="mt-1 ml-6" ref={inputRef}>
           <input
             type="text"
@@ -148,7 +151,7 @@ function Node({ obj }) {
         </form>
       )}
 
-      {addingFolder && (
+      {addingFolder && canEdit && (
         <form onSubmit={addF} className="mt-1 ml-6" ref={inputRef}>
           <input
             type="text"

@@ -11,6 +11,9 @@ import toast from 'react-hot-toast';
 
 function EditorContainer({ vaultName }) {
   const selectedFile = useVaultStore((s) => s.selectedFile);
+  const isOwner = useVaultStore((s) => s.isOwner);
+  const shareMode = useVaultStore((s) => s.shareMode);
+  const shareToken = useVaultStore((s) => s.shareToken);
   const axios = useAxios();
   const [markdownText, setMarkdownText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -19,20 +22,23 @@ function EditorContainer({ vaultName }) {
   const containerRef = useRef(null);
   const isDraggingRef = useRef(false);
 
+  const canEdit = isOwner || shareMode === 'edit';
+  const shareTokenParam = (!isOwner && shareToken) ? `?shareToken=${shareToken}` : '';
+
   
   const debouncedSave = useCallback(
     debounce(async (fileId, content) => {
-      if (!fileId) return;
+      if (!fileId || !canEdit) return;
       try {
         setIsSaving(true);
-        await axios.put(`/api/files/${fileId}`, { newContent: content });
+        await axios.put(`/api/files/${fileId}${shareTokenParam}`, { newContent: content });
       } catch (error) {
         toast.error("Error updating file.");
       } finally {
         setIsSaving(false);
       }
     }, 2000),
-    [axios]
+    [axios, canEdit, shareTokenParam]
   );
 
   const handleMouseDown = () => {
@@ -59,21 +65,21 @@ function EditorContainer({ vaultName }) {
 
   useEffect(() => {
     const editorOnOff = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'e' && selectedFile) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'e' && selectedFile && canEdit) {
         e.preventDefault();
         setEditorWidth(prev => prev === 0 ? 50 : 0);
       }
     };
     window.addEventListener('keydown', editorOnOff);
     return () => window.removeEventListener('keydown', editorOnOff);
-  }, [selectedFile]);
+  }, [selectedFile, canEdit]);
 
   useEffect(() => {
     if (!selectedFile) return;
     const fetchFileContent = async () => {
       if (selectedFile?.id) {
         try {
-          const response = await axios.get(`/api/files/${selectedFile.id}`);
+          const response = await axios.get(`/api/files/${selectedFile.id}${shareTokenParam}`);
           setMarkdownText(response.data.data.content || "");
         } catch (error) {
           console.error("Error fetching file:", error);
@@ -85,7 +91,13 @@ function EditorContainer({ vaultName }) {
     };
     fetchFileContent();
     setFileChanged(true);
-  }, [selectedFile?.id, axios]);
+  }, [selectedFile?.id, shareTokenParam]);
+
+  useEffect(() => {
+    if (!canEdit) {
+      setEditorWidth(0);
+    }
+  }, [canEdit]);
 
   useEffect(() => {
     if(fileChanged){
@@ -141,7 +153,6 @@ function EditorContainer({ vaultName }) {
 
       {/* Navigation Bar */}
       <div className="sticky top-0 z-10 w-full h-10 border-b border-[var(--gray-6)] bg-[var(--gray-3)]/80 backdrop-blur supports-[backdrop-filter]:bg-[var(--gray-3)] flex items-center justify-between px-3 sm:px-4 shadow-[0_1px_0_0_rgba(255,255,255,0.02)]">
-        {/* Left: breadcrumb (vault / file) */}
         <div className="flex items-center gap-2 min-w-0">
           <FileTextIcon className="w-4 h-4 text-[var(--accent-10)]" />
           <div className="flex items-center gap-2 min-w-0">
@@ -162,8 +173,12 @@ function EditorContainer({ vaultName }) {
 
         {/* Right: status + view toggle */}
         <div className="flex items-center gap-3">
-          {/* Save status pill */}
-          {isSaving ? (
+          {!canEdit ? (
+            <div className="flex items-center gap-2 rounded-full px-2.5 py-1 border border-[var(--gray-6)] bg-[var(--gray-3)]/40 text-[var(--gray-11)]">
+              <EyeOpenIcon className="w-4 h-4" />
+              <Text size="1">Only View</Text>
+            </div>
+          ) : isSaving ? (
             <div className="flex items-center gap-2 rounded-full px-2.5 py-1 border border-[var(--blue-6)] bg-[var(--blue-3)]/40 text-[var(--blue-11)]">
               <Spinner size="1" />
               <Text size="1">Saving…</Text>
@@ -175,35 +190,37 @@ function EditorContainer({ vaultName }) {
             </div>
           )}
 
-          {/* View toggle */}
-          <Tooltip.Provider delayDuration={150}>
-            <Tooltip.Root>
-              <Tooltip.Trigger asChild>
-                <button
-                  onClick={() => setEditorWidth(editorWidth === 0 ? 50 : 0)}
-                  className="p-2 rounded-md hover:bg-[var(--gray-5)] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-8)]"
-                  aria-label={editorWidth === 0 ? 'Show editor' : 'Hide editor'}
-                  title={editorWidth === 0 ? 'Show editor' : 'Hide editor'}
-                >
-                  {editorWidth === 0 ? (
-                    <Pencil1Icon className="text-[var(--gray-11)] w-4 h-4" />
-                  ) : (
-                    <EyeOpenIcon className="text-[var(--gray-11)] w-4 h-4" />
-                  )}
-                </button>
-              </Tooltip.Trigger>
-              <Tooltip.Portal>
-                <Tooltip.Content
-                  className="px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded shadow-lg select-none"
-                  side="bottom"
-                  sideOffset={5}
-                >
-                  {editorWidth === 0 ? 'Show editor' : 'Hide editor'}
-                  <Tooltip.Arrow className="fill-gray-900" />
-                </Tooltip.Content>
-              </Tooltip.Portal>
-            </Tooltip.Root>
-          </Tooltip.Provider>
+          {/* View toggle - only show when user can edit */}
+          {canEdit && (
+            <Tooltip.Provider delayDuration={150}>
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <button
+                    onClick={() => setEditorWidth(editorWidth === 0 ? 50 : 0)}
+                    className="p-2 rounded-md hover:bg-[var(--gray-5)] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-8)]"
+                    aria-label={editorWidth === 0 ? 'Show editor' : 'Hide editor'}
+                    title={editorWidth === 0 ? 'Show editor' : 'Hide editor'}
+                  >
+                    {editorWidth === 0 ? (
+                      <Pencil1Icon className="text-[var(--gray-11)] w-4 h-4" />
+                    ) : (
+                      <EyeOpenIcon className="text-[var(--gray-11)] w-4 h-4" />
+                    )}
+                  </button>
+                </Tooltip.Trigger>
+                <Tooltip.Portal>
+                  <Tooltip.Content
+                    className="px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded shadow-lg select-none"
+                    side="bottom"
+                    sideOffset={5}
+                  >
+                    {editorWidth === 0 ? 'Show editor' : 'Hide editor'}
+                    <Tooltip.Arrow className="fill-gray-900" />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              </Tooltip.Root>
+            </Tooltip.Provider>
+          )}
         </div>
       </div>
       {/* Editor and Preview area */}
