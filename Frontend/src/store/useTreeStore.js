@@ -18,8 +18,8 @@ export const useTreeStore = create((set, get) => ({
       return { expandedIds: next };
     }),
 
-  select: (idOrObj) => {
-    const id = typeof idOrObj === 'object' && idOrObj !== null ? idOrObj.id : idOrObj;
+  select: (t) => {
+    const id = typeof t === 'object' && t !== null ? t.id : t;
     set({ selectedId: id });
   },
 

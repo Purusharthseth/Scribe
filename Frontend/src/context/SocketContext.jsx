@@ -5,13 +5,7 @@ import toast from 'react-hot-toast';
 
 const SocketContext = createContext();
 
-export const useSocket = () => {
-  const context = useContext(SocketContext);
-  if (!context) {
-    throw new Error('useSocket must be used within a SocketProvider');
-  }
-  return context;
-};
+export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children, vaultId, shareToken }) => {
   const [socket, setSocket] = useState(null);
@@ -23,9 +17,11 @@ export const SocketProvider = ({ children, vaultId, shareToken }) => {
   const maxReconnectAttempts = 5;
 
   useEffect(() => {
+    //this is all context functionality.
     if (!vaultId) return;
 
     const initializeSocket = async () => {
+     //this is the socket initializer.
       try {
         const token = await getToken();
         if (!token) {
@@ -43,7 +39,6 @@ export const SocketProvider = ({ children, vaultId, shareToken }) => {
           timeout: 10000,
         });
 
-        // Connection handlers
         socketInstance.on('connect', () => {
           console.log('🔌 Connected to Socket.IO server');
           setIsConnected(true);
@@ -70,10 +65,9 @@ export const SocketProvider = ({ children, vaultId, shareToken }) => {
             toast.error(`Connection failed: ${errorData.message}`);
           } catch {
             setConnectionError(`Connection failed: ${error.message}`);
-            toast.error('Failed to connect to real-time updates');
+            toast.error('Failed to connect.');
           }
 
-          // Handle reconnection attempts
           reconnectAttempts.current += 1;
           if (reconnectAttempts.current >= maxReconnectAttempts) {
             console.log('🔌 Max reconnection attempts reached');
@@ -81,59 +75,64 @@ export const SocketProvider = ({ children, vaultId, shareToken }) => {
           }
         });
 
-        // User presence handlers
-        socketInstance.on('user:joined', (data) => {
+        // User presence handlers with proper cleanup
+        const handleUserJoined = (data) => {
           console.log('👤 User joined:', data);
           toast(`${data.user} joined the vault`, {
             icon: '👋',
             duration: 3000,
           });
-        });
+        };
 
-        socketInstance.on('user:left', (data) => {
+        const handleUserLeft = (data) => {
           console.log('👤 User left:', data);
           toast(`${data.user} left the vault`, {
             icon: '👋',
             duration: 3000,
           });
-        });
+        };
+
+        socketInstance.on('user:joined', handleUserJoined);
+        socketInstance.on('user:left', handleUserLeft);
 
         setSocket(socketInstance);
+        return { socketInstance, handleUserJoined, handleUserLeft };
 
       } catch (error) {
         console.error('🔌 Failed to initialize socket:', error);
         setConnectionError('Failed to initialize connection');
         toast.error('Failed to initialize real-time connection');
+        return null;
       }
     };
 
-    initializeSocket();
+    let cleanupData = null;
+    initializeSocket().then(data => {
+      cleanupData = data;
+    });
 
-    // Cleanup on unmount or vaultId change
     return () => {
-      setSocket(prevSocket => {
-        if (prevSocket) {
-          console.log('🔌 Cleaning up socket connection');
-          prevSocket.disconnect();
-          setIsConnected(false);
-          setConnectionError(null);
-          setUsers([]);
-        }
-        return null;
-      });
+      if (cleanupData) {
+        const { socketInstance, handleUserJoined, handleUserLeft } = cleanupData;
+        socketInstance.off('user:joined', handleUserJoined);
+        socketInstance.off('user:left', handleUserLeft);
+        socketInstance.disconnect();
+      }
+      setSocket(null);
+      setIsConnected(false);
+      setConnectionError(null);
+      setUsers([]);
     };
   }, [vaultId, shareToken, getToken]);
 
-  // Socket event listeners for file tree updates
-  const onFileTreeUpdate = (callback) => {
+  const onFileTreeUpdate = (cb) => {
     if (socket) {
-      socket.on('file-tree:updated', callback);
-      return () => socket.off('file-tree:updated', callback);
+      socket.on('file-tree:updated', cb);
+      return () => socket.off('file-tree:updated', cb);
     }
     return () => {};
   };
 
-  // Emit custom events (if needed in the future)
   const emit = (event, data) => {
     if (socket && isConnected) {
       socket.emit(event, data);

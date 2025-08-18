@@ -188,6 +188,10 @@ function Tree({ vaultId, fileTree }) {
   }, [axios, vaultId, data, selectedFile, setSelectedFile, shareTokenParam]);
 
   useEffect(() => {
+    setData(fileTree);
+  }, [fileTree]);
+
+  useEffect(() => {
     initStore({ addNode, addFolder, editNode, deleteNode });
   }, [initStore, addNode, addFolder, editNode, deleteNode]);
 

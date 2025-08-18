@@ -8,17 +8,11 @@ import { setSocketIO as setFolderSocketIO } from './controllers/folder.controlle
 dotenv.config();
 
 const PORT = process.env.PORT || 8001;
-
-// Create HTTP server
 const server = createServer(app);
-
-// Setup Socket.IO
 const io = setupSocket(server);
 
-// Make io accessible in routes (optional)
 app.set('io', io);
 
-// Set socket instance in controllers
 setFileSocketIO(io);
 setFolderSocketIO(io);
 

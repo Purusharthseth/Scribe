@@ -5,15 +5,10 @@ import ApiResponse from "../utils/ApiResponse.js";
 import { vaults, files } from "../db/schema.js";
 import { and, eq, or, ne } from "drizzle-orm";
 
-// Socket.IO instance for emitting events
 let socketIO;
 
-// Function to set socket instance
-export const setSocketIO = (io) => {
-  socketIO = io;
-};
+export const setSocketIO = (io) => socketIO = io;
 
-// Helper to emit file tree updates
 const emitFileTreeUpdate = (vaultId, fileTree) => {
   if (socketIO) {
     socketIO.to(`vault:${vaultId}`).emit("file-tree:updated", {
@@ -190,7 +185,7 @@ const addFile = AsyncHandler(async (req, res) => {
     // Emit socket event for file tree update
     emitFileTreeUpdate(vaultId, updatedTree);
 
-    res
+    return res
       .status(201)
       .json(
         new ApiResponse(

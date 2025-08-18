@@ -9,17 +9,20 @@ import toast from 'react-hot-toast';
 import { useAuth } from '@clerk/clerk-react';
 import useVaultStore from '@/store/useVaultStore';
 import { useTreeStore } from '@/store/useTreeStore';
+import { SocketProvider, useSocket } from '../context/SocketContext';
 
-function Vault() {
+function VaultContent() {
   const { vaultId } = useParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const fileTree = useRef([]);
+  const [fileTree, setFileTree] = useState([]);
   const vaultName = useRef('');
   const axios = useAxios();
   const { userId, isLoaded } = useAuth();
   const [searchParams] = useSearchParams();
   const shareToken = searchParams.get('shareToken');
+  const { onFileTreeUpdate, isConnected } = useSocket();
+  
   useVaultStore.getState().setShareToken(shareToken);
   
 
@@ -30,7 +33,8 @@ function Vault() {
     (async () => {
       try {
         const res = await axios.get(`/api/vaults/${vaultId}${shareToken ? `?shareToken=${shareToken}` : ''}`);
-        fileTree.current =  res.data.data.file_tree;
+        const initialFileTree = Array.isArray(res.data.data.file_tree) ? res.data.data.file_tree : [];
+        setFileTree(initialFileTree);
         vaultName.current = res.data.data.name || '';
         console.log(res.data.data);
         const isOwner = res.data.data.owner_id === userId;
@@ -45,7 +49,6 @@ function Vault() {
           : "Failed to load vault. Please check your connection and try again.";
         setError(errorMessage);
         toast.error("Failed to fetch vault.");
-        fileTree.current = [];
       } finally {
         setLoading(false);
       }
@@ -56,6 +59,17 @@ function Vault() {
       useTreeStore.getState().resetUI();
     }
   }, [vaultId, axios, isLoaded, userId]);
+
+  useEffect(() => {
+    if (!isConnected) return;
+
+    const unsubscribe = onFileTreeUpdate((data) => {
+      console.log('📁 File tree updated via socket:', data);
+      setFileTree(data.fileTree);
+    });
+
+    return unsubscribe;
+  }, [isConnected, onFileTreeUpdate]);
 
   if (loading) {
     return (
@@ -91,13 +105,25 @@ function Vault() {
   return (
     <Flex className="h-full w-full overflow-hidden">
       <Box className="shrink-0 min-w-[240px] w-[240px] h-full overflow-y-auto border-r border-[var(--gray-6)] bg-[var(--gray-2)] select-none">
-        <Tree className="h-full" vaultId={vaultId} fileTree={fileTree.current} />
+        <Tree className="h-full" vaultId={vaultId} fileTree={fileTree}/>
       </Box>
 
       <Box flexGrow="1" className="h-full min-w-0">
         <EditorContainer vaultName={vaultName.current} />
       </Box>
     </Flex>
+  );
+}
+
+function Vault() {
+  const { vaultId } = useParams();
+  const [searchParams] = useSearchParams();
+  const shareToken = searchParams.get('shareToken');
+
+  return (
+    <SocketProvider vaultId={vaultId} shareToken={shareToken}>
+      <VaultContent />
+    </SocketProvider>
   );
 }
 

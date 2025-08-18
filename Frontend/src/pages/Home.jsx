@@ -11,7 +11,7 @@ function Home() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [vaultName, setVaultName] = useState('');
   const [clickedVault, setClickedVault] = useState(null);
-  const [clickedAction, setClickedAction] = useState(null); // 'edit' | 'delete' | 'share' | null
+  const [clickedAction, setClickedAction] = useState(null);
   const [shareMode, setShareMode] = useState('private');
   const [isUpdatingShare, setIsUpdatingShare] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
