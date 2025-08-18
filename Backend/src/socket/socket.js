@@ -113,7 +113,7 @@ const setupSocket = (server) => {
           userCounts.delete(username);
           deleteFromSet(uniqueUsers, username);
 
-          socket.to(room).emit("user:left", { user, reason: reason });
+          socket.to(room).emit("user:left", { user: { username }, reason: reason });
         } else {
           userCounts.set(username, newCount);
         }

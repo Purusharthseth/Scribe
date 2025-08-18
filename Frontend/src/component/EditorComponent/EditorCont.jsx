@@ -8,6 +8,7 @@ import useVaultStore from '@/store/useVaultStore';
 import useAxios from '@/utils/useAxios';
 import debounce from '@/utils/debounce';
 import toast from 'react-hot-toast';
+import UserList from '../UserList';
 
 function EditorContainer({ vaultName }) {
   const selectedFile = useVaultStore((s) => s.selectedFile);
@@ -171,8 +172,9 @@ function EditorContainer({ vaultName }) {
           </div>
         </div>
 
-        {/* Right: status + view toggle */}
+        {/* Right: user list + status + view toggle */}
         <div className="flex items-center gap-3">
+          <UserList />
           {!canEdit ? (
             <div className="flex items-center gap-2 rounded-full px-2.5 py-1 border border-[var(--gray-6)] bg-[var(--gray-3)]/40 text-[var(--gray-11)]">
               <EyeOpenIcon className="w-4 h-4" />
