@@ -8,22 +8,28 @@ export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children, vaultId, shareToken }) => {
   const authTokenRef = useRef(null);
-    const [socket, setSocket] = useState(null);
+  const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState(null);
   const [users, setUsers] = useState([]);
   const { getToken } = useAuth();
   const socketRef = useRef(null);
-  const reconnectNotifiedRef = useRef(false); 
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
 
   const canToast = () => typeof document !== 'undefined' && !document.hidden;
 
-  useEffect(() => {
-    if (!vaultId) return;
+  const refreshToken = async () => {
+    try {
+      authTokenRef.current = await getToken({ skipCache: true });
+      return authTokenRef.current;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      return null;
+    }
+  };
 
-    let sock = null;
-
-
+  const setupSocketListeners = (socketInstance) => {
     const handleUserJoined = (data) => {
       setUsers(prev => {
         const exists = prev.some(u => u.username === data?.user?.username);
@@ -39,88 +45,141 @@ export const SocketProvider = ({ children, vaultId, shareToken }) => {
       setUsers(Array.isArray(data?.users) ? data.users : []);
     };
 
-    const init = async () => {
-      try {
-        authTokenRef.current =
-          (await getToken({ skipCache: true }).catch(async () => null)) ||
-          (await getToken({ forceRefresh: true }).catch(async () => null)) ||
-          (await getToken().catch(async () => null));
+    socketInstance.on('user:joined', handleUserJoined);
+    socketInstance.on('user:left', handleUserLeft);
+    socketInstance.on('user:list', handleUserList);
 
-        if (!authTokenRef.current) {
-          setConnectionError('Authentication token not available');
-          return null;
-        }
+    return () => {
+      socketInstance.off('user:joined', handleUserJoined);
+      socketInstance.off('user:left', handleUserLeft);
+      socketInstance.off('user:list', handleUserList);
+    };
+  };
 
-        const socketInstance = io(import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000', {
-          autoConnect: false,
-          transports: ['websocket'],
-          timeout: 10000,
-        });
+  const initializeSocket = async () => {
+    try {
+      const token = await refreshToken();
+      if (!token) {
+        setConnectionError('Authentication failed');
+        return null;
+      }
 
-        socketRef.current = socketInstance; // NEW
-        socketInstance.auth = {
-          token: authTokenRef.current,
+      const socketInstance = io(import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000', {
+        autoConnect: false,
+        transports: ['websocket'],
+        timeout: 10000,
+        reconnection: true,
+        reconnectionAttempts: maxReconnectAttempts,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        auth: {
+          token,
           vaultId,
           shareToken: shareToken || undefined,
-        };
+        },
+      });
 
-        socketInstance.on('connect', () => {
-          setIsConnected(true);
-          setConnectionError(null);
-          reconnectNotifiedRef.current = false;
-          if (canToast()) toast.success('Connected to real-time updates');
-        });
-        socketInstance.on('disconnect', (reason) => {
-          setIsConnected(false);
-          if (reason !== 'io client disconnect' && canToast()) {
-            toast.error('Lost connection to real-time updates');
-          }
-        })
+      // Core connection listeners
+      socketInstance.on('connect', () => {
+        reconnectAttempts.current = 0;
+        setIsConnected(true);
+        setConnectionError(null);
+        if (canToast()) toast.success('Connected to real-time updates');
+      });
+
+      socketInstance.on('disconnect', (reason) => {
+        setIsConnected(false);
+        if (reason !== 'io client disconnect' && canToast()) {
+          toast.error(`Disconnected: ${reason}`);
+        }
+      });
+
+      // Enhanced error handling
+      socketInstance.on('connect_error', async (err) => {
+        setIsConnected(false);
         
-        socketInstance.on('connect_error', () => {
-          setIsConnected(false);
-          if (typeof window !== 'undefined') {
-            window.location.reload();
+        if (err.message.includes('auth') && reconnectAttempts.current < maxReconnectAttempts) {
+          const newToken = await refreshToken();
+          if (newToken) {
+            socketInstance.auth.token = newToken;
+            reconnectAttempts.current += 1;
+            socketInstance.connect();
+            return;
           }
-        });
+        }
 
-        socketInstance.on('user:joined', handleUserJoined);
-        socketInstance.on('user:left', handleUserLeft);
-        socketInstance.on('user:list', handleUserList);
+        if (canToast()) {
+          toast.error(`Connection error: ${err.message}`);
+        }
+      });
 
-        socketInstance.connect();
+      socketInstance.on('reconnect_attempt', (attempt) => {
+        if (canToast()) toast.loading(`Reconnecting (${attempt}/${maxReconnectAttempts})...`);
+      });
+
+      socketInstance.on('reconnect_error', async (err) => {
+        if (err.message.includes('auth') && reconnectAttempts.current < maxReconnectAttempts) {
+          const newToken = await refreshToken();
+          if (newToken) {
+            socketInstance.auth.token = newToken;
+            reconnectAttempts.current += 1;
+          }
+        }
+      });
+
+      socketInstance.on('reconnect_failed', () => {
+        if (canToast()) toast.error('Failed to reconnect. Please refresh the page.');
+      });
+
+      // Custom application listeners
+      const cleanupListeners = setupSocketListeners(socketInstance);
+
+      socketInstance.connect();
+      return { socketInstance, cleanupListeners };
+    } catch (error) {
+      console.error('Socket initialization failed:', error);
+      setConnectionError('Connection failed');
+      if (canToast()) toast.error('Failed to connect to real-time updates');
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    if (!vaultId) return;
+
+    let socketCleanup = () => {};
+
+    const setupSocket = async () => {
+      const result = await initializeSocket();
+      if (result) {
+        const { socketInstance, cleanupListeners } = result;
+        socketRef.current = socketInstance;
         setSocket(socketInstance);
-        sock = socketInstance;
-        return socketInstance;
-      } catch (e) {
-        setConnectionError('Failed to initialize connection');
-        if (canToast()) toast.error('Failed to initialize real-time connection');
-        return null;
+        socketCleanup = cleanupListeners;
       }
     };
 
-    init();
+    setupSocket();
 
     return () => {
-  if (sock) {
-        sock.off('user:joined', handleUserJoined);
-        sock.off('user:left', handleUserLeft);
-        sock.off('user:list', handleUserList);
-        sock.off('connect');
-        sock.off('disconnect');
-        sock.off('connect_error');
-        sock.disconnect();
+      socketCleanup();
+      if (socketRef.current) {
+        socketRef.current.off('connect');
+        socketRef.current.off('disconnect');
+        socketRef.current.off('connect_error');
+        socketRef.current.off('reconnect_attempt');
+        socketRef.current.off('reconnect_error');
+        socketRef.current.off('reconnect_failed');
+        socketRef.current.disconnect();
+        socketRef.current = null;
       }
-      socketRef.current = null; // NEW
       setSocket(null);
       setIsConnected(false);
       setConnectionError(null);
       setUsers([]);
-      reconnectNotifiedRef.current = false;
+      reconnectAttempts.current = 0;
     };
   }, [vaultId, shareToken, getToken]);
-// ...existing code...
-
 
   const onFileTreeUpdate = (cb) => {
     if (!socket) return () => {};
@@ -131,7 +190,9 @@ export const SocketProvider = ({ children, vaultId, shareToken }) => {
   const emit = (event, data) => {
     if (socket && isConnected) {
       socket.emit(event, data);
-    } 
+    } else if (canToast()) {
+      toast.error('Not connected to server');
+    }
   };
 
   const value = useMemo(() => ({

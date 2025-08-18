@@ -1,19 +1,19 @@
-// setupSocket.js
+// setupSocket.js (Updated)
 import { Server } from "socket.io";
 import { vaults } from "../db/schema.js";
 import { and, eq, or, ne } from "drizzle-orm";
-import { clerkClient, verifyToken } from "@clerk/express"; 
+import { clerkClient, verifyToken } from "@clerk/express";
 import db from "../db/drizzle.js";
+
 function userPayLoad(u) {
-
   const fullName = [u?.firstName, u?.lastName].filter(Boolean).join(" ") || u?.username || "Unknown";
-
   return {
     username: u.username,
     fullName,
     avatarUrl: u.imageUrl || null,
   };
 }
+
 function deleteFromSet(set, username) {
   const userToDelete = [...set].find(user => user.username === username);
   if (userToDelete) set.delete(userToDelete);
@@ -28,7 +28,7 @@ const setupSocket = (server) => {
     },
   });
 
-  const vaultUserCounts = new Map(); 
+  const vaultUserCounts = new Map();
   const vaultUniqueUsers = new Map();
 
   io.use(async (socket, next) => {
@@ -61,7 +61,7 @@ const setupSocket = (server) => {
       publicUser.isOwner = vault.owner_id === userId;
 
       socket.data.userId = userId;
-      socket.data.user = publicUser; 
+      socket.data.user = publicUser;
       socket.data.vaultId = vaultId;
       socket.data.shareMode = vault.share_mode;
       socket.data.canEdit = publicUser.isOwner || vault.share_mode === "edit";
@@ -96,39 +96,40 @@ const setupSocket = (server) => {
 
     if (isFirstConnection) {
       uniqueUsers.add(user);
-      socket.to(room).emit("user:joined", {user});
-      socket.emit("user:list", { users: Array.from(uniqueUsers) });
+      socket.to(room).emit("user:joined", { user });
     }
+    socket.emit("user:list", { users: Array.from(uniqueUsers) });
 
+    socket.on("disconnect", () => {
+      setTimeout(() => {
+        if (socket.connected) return; // Skip if reconnected
 
-    socket.on("disconnect", (reason) => {
-      const userCounts = vaultUserCounts.get(vaultId);
-      const uniqueUsers = vaultUniqueUsers.get(vaultId);
+        const userCounts = vaultUserCounts.get(vaultId);
+        const uniqueUsers = vaultUniqueUsers.get(vaultId);
 
-      if (userCounts && uniqueUsers) {
-        const currentCount = userCounts.get(username) || 0;
-        const newCount = Math.max(0, currentCount - 1);
+        if (userCounts && uniqueUsers) {
+          const currentCount = userCounts.get(username) || 0;
+          const newCount = Math.max(0, currentCount - 1);
 
-        if (newCount === 0) {
-          userCounts.delete(username);
-          deleteFromSet(uniqueUsers, username);
+          if (newCount === 0) {
+            userCounts.delete(username);
+            deleteFromSet(uniqueUsers, username);
+            socket.to(room).emit("user:left", { user: { username } });
+          } else {
+            userCounts.set(username, newCount);
+          }
 
-          socket.to(room).emit("user:left", { user: { username }, reason: reason });
-        } else {
-          userCounts.set(username, newCount);
+          if (userCounts.size === 0) {
+            vaultUserCounts.delete(vaultId);
+            vaultUniqueUsers.delete(vaultId);
+          }
         }
-
-        if (userCounts.size === 0) {
-          vaultUserCounts.delete(vaultId);
-          vaultUniqueUsers.delete(vaultId);
-        }
-      }
-
+      }, 5000); // 5-second grace period
     });
 
     socket.on("error", (error) => {
       console.error(`Socket error for ${socket.data.user?.id}:`, error);
-       socket.disconnect(true);
+      socket.disconnect(true);
     });
   });
 
