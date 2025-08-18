@@ -9,6 +9,12 @@ const useVaultStore = create((set) => ({
   setIsOwner: (isOwner) => set({ isOwner }),
   setShareMode: (shareMode) => set({ shareMode }),
   setShareToken: (shareToken) => set({ shareToken }),
+  reset: () => set({
+    selectedFile: null,
+    isOwner: false,
+    shareMode: 'private',
+    shareToken: null,
+  }),
 
   clearSelections: () => set({ selectedFile: null }),
 }));

@@ -3,7 +3,6 @@ import React from 'react'
 import { Box, Flex, Text, Button } from '@radix-ui/themes'
 
 function Header() {
-  const { user } = useUser()
 
   return (
     <Box 

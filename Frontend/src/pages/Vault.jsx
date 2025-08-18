@@ -8,6 +8,7 @@ import useAxios from '../utils/useAxios';
 import toast from 'react-hot-toast';
 import { useAuth } from '@clerk/clerk-react';
 import useVaultStore from '@/store/useVaultStore';
+import { useTreeStore } from '@/store/useTreeStore';
 
 function Vault() {
   const { vaultId } = useParams();
@@ -16,21 +17,24 @@ function Vault() {
   const fileTree = useRef([]);
   const vaultName = useRef('');
   const axios = useAxios();
-  const userId = useAuth().userId;
+  const { userId, isLoaded } = useAuth();
   const [searchParams] = useSearchParams();
   const shareToken = searchParams.get('shareToken');
   useVaultStore.getState().setShareToken(shareToken);
+  
 
   useEffect(() => {
-    if (!vaultId) return;
+    if (!isLoaded) return; 
     setLoading(true);
+    useVaultStore.getState().reset();
     (async () => {
       try {
         const res = await axios.get(`/api/vaults/${vaultId}${shareToken ? `?shareToken=${shareToken}` : ''}`);
-        fileTree.current = Array.isArray(res.data.data.file_tree) ? res.data.data.file_tree : [];
+        fileTree.current =  res.data.data.file_tree;
         vaultName.current = res.data.data.name || '';
         console.log(res.data.data);
-        useVaultStore.getState().setIsOwner(res.data.data.owner_id === userId);
+        const isOwner = res.data.data.owner_id === userId;
+        useVaultStore.getState().setIsOwner(isOwner);
         useVaultStore.getState().setShareMode(res.data.data.share_mode || 'private');
       } catch (e) {
         console.error("Failed to fetch vault:", e);
@@ -46,7 +50,12 @@ function Vault() {
         setLoading(false);
       }
     })();
-  }, [vaultId, axios]);
+
+    return()=>{
+      useVaultStore.getState().reset();
+      useTreeStore.getState().resetUI();
+    }
+  }, [vaultId, axios, isLoaded, userId]);
 
   if (loading) {
     return (
