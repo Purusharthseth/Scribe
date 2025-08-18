@@ -9,9 +9,13 @@ let socketIO;
 
 export const setSocketIO = (io) => socketIO = io;
 
-const emitFileTreeUpdate = (vaultId, fileTree) => {
+const emitFileTreeUpdate = (vaultId, fileTree, excludeSocketId = null) => {
   if (socketIO) {
-    socketIO.to(`vault:${vaultId}`).emit("file-tree:updated", {
+    const emitter = excludeSocketId 
+      ? socketIO.to(`vault:${vaultId}`).except(excludeSocketId)
+      : socketIO.to(`vault:${vaultId}`);
+    
+    emitter.emit("file-tree:updated", {
       fileTree,
       timestamp: new Date().toISOString()
     });
@@ -136,6 +140,7 @@ const addFile = AsyncHandler(async (req, res) => {
   const userId = req.auth().userId;
   const { vaultId, name, content, folderId } = req.body;
   const shareToken = req.query?.shareToken;
+  const socketId = req.headers['x-socket-id'];
 
   if (!name || !name.trim())
     throw new ApiError(400, "File name cannot be empty.");
@@ -182,8 +187,7 @@ const addFile = AsyncHandler(async (req, res) => {
       .set({ file_tree: updatedTree, updated_at: new Date() })
       .where(eq(vaults.id, vaultId));
 
-    // Emit socket event for file tree update
-    emitFileTreeUpdate(vaultId, updatedTree);
+    emitFileTreeUpdate(vaultId, updatedTree, socketId);
 
     return res
       .status(201)
@@ -202,6 +206,7 @@ const updateFileName = AsyncHandler(async (req, res) => {
   const { fileId } = req.params;
   const { vaultId, newName } = req.body;
   const shareToken = req.query?.shareToken;
+  const socketId = req.headers['x-socket-id'];
 
   if (!newName || !newName.trim())
     throw new ApiError(400, "File name cannot be empty.");
@@ -244,8 +249,7 @@ const updateFileName = AsyncHandler(async (req, res) => {
       .set({ file_tree: updatedTree, updated_at: new Date() })
       .where(eq(vaults.id, vaultId));
 
-    // Emit socket event for file tree update
-    emitFileTreeUpdate(vaultId, updatedTree);
+    emitFileTreeUpdate(vaultId, updatedTree, socketId);
 
     return res.status(200).json(new ApiResponse(200, { file_tree: updatedTree }, "File name updated successfully."));
   });
@@ -256,6 +260,7 @@ const deleteFile = AsyncHandler(async (req, res) => {
   const { fileId } = req.params;
   const { vaultId } = req.body;
   const shareToken = req.query?.shareToken;
+  const socketId = req.headers['x-socket-id'];
 
   await db.transaction(async (tx) => {
     let whereClause;
@@ -293,8 +298,7 @@ const deleteFile = AsyncHandler(async (req, res) => {
       .set({ file_tree: updatedTree, updated_at: new Date() })
       .where(eq(vaults.id, vaultId));
 
-    // Emit socket event for file tree update
-    emitFileTreeUpdate(vaultId, updatedTree);
+    emitFileTreeUpdate(vaultId, updatedTree, socketId);
 
     return res.status(200).json(new ApiResponse(200, { file_tree: updatedTree }, "File deleted successfully."));
   });

@@ -6,6 +6,7 @@ import useAxios from '@/utils/useAxios';
 import useVaultStore from '@/store/useVaultStore';
 import toast from 'react-hot-toast';
 import { useTreeStore } from '@/store/useTreeStore';
+import { useSocket } from '../../context/SocketContext';
 
 function findAllAncestorIds(data, targetId) {
   let res = [];
@@ -49,6 +50,7 @@ function isFileInsideFolder(data, fileId, folderId) {
 function Tree({ vaultId, fileTree }) {
   const [data, setData] = useState(fileTree);
   const axios = useAxios();
+  const { socket } = useSocket();
   const selectedFile = useVaultStore((s) => s.selectedFile);
   const setSelectedFile = useVaultStore((s) => s.setSelectedFile);
   const isOwner = useVaultStore((s) => s.isOwner);
@@ -77,6 +79,8 @@ function Tree({ vaultId, fileTree }) {
         name: sanitizedName,
         content: '',
         folderId: parentId || null,
+      }, {
+        headers: { "x-socket-id": socket?.id }
       });
       const newTree = res.data?.data?.file_tree || [];
       setData(newTree);
@@ -106,6 +110,8 @@ function Tree({ vaultId, fileTree }) {
         vaultId,
         name: sanitizedName,
         parentId: parentId || null,
+      }, {
+        headers: { "x-socket-id": socket?.id }
       });
       const newTree = res.data?.data?.file_tree || [];
       setData(newTree);
@@ -137,11 +143,15 @@ function Tree({ vaultId, fileTree }) {
         res = await axios.put(`/api/folders/${nodeId}/name${shareTokenParam}`, {
           vaultId,
           newName: sanitizedName,
+        }, {
+          headers: { "x-socket-id": socket?.id }
         });
       } else {
         res = await axios.put(`/api/files/${nodeId}/name${shareTokenParam}`, {
           vaultId,
           newName: sanitizedName,
+        }, {
+          headers: { "x-socket-id": socket?.id }
         });
       }
       const newTree = res.data?.data?.file_tree || [];
@@ -168,9 +178,15 @@ function Tree({ vaultId, fileTree }) {
     try {
       let res;
       if (nodeType === "folder") {
-        res = await axios.delete(`/api/folders/${nodeId}${shareTokenParam}`, { data: { vaultId } });
+        res = await axios.delete(`/api/folders/${nodeId}${shareTokenParam}`, { 
+          data: { vaultId },
+          headers: { "x-socket-id": socket?.id }
+        });
       } else {
-        res = await axios.delete(`/api/files/${nodeId}${shareTokenParam}`, { data: { vaultId } });
+        res = await axios.delete(`/api/files/${nodeId}${shareTokenParam}`, { 
+          data: { vaultId },
+          headers: { "x-socket-id": socket?.id }
+        });
       }
       const newTree = res.data?.data?.file_tree || [];
       setData(newTree);
