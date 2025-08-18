@@ -2,18 +2,21 @@
 import { Server } from "socket.io";
 import { vaults } from "../db/schema.js";
 import { and, eq, or, ne } from "drizzle-orm";
-import { clerkClient, verifyToken } from "@clerk/express"; // <-- clerkClient gives us user profiles
+import { clerkClient, verifyToken } from "@clerk/express"; 
 import db from "../db/drizzle.js";
 function userPayLoad(u) {
 
   const fullName = [u?.firstName, u?.lastName].filter(Boolean).join(" ") || u?.username || "Unknown";
 
   return {
-    id: u.id,
-    username: u.username || null,
+    username: u.username,
     fullName,
     avatarUrl: u.imageUrl || null,
   };
+}
+function deleteFromSet(set, username) {
+  const userToDelete = [...set].find(user => user.username === username);
+  if (userToDelete) set.delete(userToDelete);
 }
 
 const setupSocket = (server) => {
@@ -24,6 +27,9 @@ const setupSocket = (server) => {
       credentials: true,
     },
   });
+
+  const vaultUserCounts = new Map(); 
+  const vaultUniqueUsers = new Map();
 
   io.use(async (socket, next) => {
     try {
@@ -52,13 +58,13 @@ const setupSocket = (server) => {
 
       const clerkUser = await clerkClient.users.getUser(userId);
       const publicUser = userPayLoad(clerkUser);
+      publicUser.isOwner = vault.owner_id === userId;
 
       socket.data.userId = userId;
       socket.data.user = publicUser; 
       socket.data.vaultId = vaultId;
-      socket.data.isOwner = vault.owner_id === userId;
       socket.data.shareMode = vault.share_mode;
-      socket.data.canEdit = socket.data.isOwner || vault.share_mode === "edit";
+      socket.data.canEdit = publicUser.isOwner || vault.share_mode === "edit";
 
       next();
     } catch (err) {
@@ -69,26 +75,60 @@ const setupSocket = (server) => {
 
   io.on("connection", (socket) => {
     const vaultId = socket.data.vaultId;
+    const username = socket.data.user.username;
+    const user = socket.data.user;
     const room = `vault:${vaultId}`;
-
+    
     socket.join(room);
 
-   
-    socket.to(room).emit("user:joined", {
-      user: socket.data.user.fullName,
-      isOwner: socket.data.isOwner,
-      shareMode: socket.data.shareMode,
-    });
+    if (!vaultUserCounts.has(vaultId)) {
+      vaultUserCounts.set(vaultId, new Map());
+      vaultUniqueUsers.set(vaultId, new Set());
+    }
+
+    const userCounts = vaultUserCounts.get(vaultId);
+    const uniqueUsers = vaultUniqueUsers.get(vaultId);
+
+    const currCnt = userCounts.get(username) || 0;
+    const isFirstConnection = currCnt === 0;
+
+    userCounts.set(username, currCnt + 1);
+
+    if (isFirstConnection) {
+      uniqueUsers.add(user);
+      socket.to(room).emit("user:joined", {user});
+      socket.emit("user:list", { users: Array.from(uniqueUsers) });
+    }
+
 
     socket.on("disconnect", (reason) => {
-      socket.to(room).emit("user:left", {
-        user: socket.data.user.fullName,
-        reason,
-      });
+      const userCounts = vaultUserCounts.get(vaultId);
+      const uniqueUsers = vaultUniqueUsers.get(vaultId);
+
+      if (userCounts && uniqueUsers) {
+        const currentCount = userCounts.get(username) || 0;
+        const newCount = Math.max(0, currentCount - 1);
+
+        if (newCount === 0) {
+          userCounts.delete(username);
+          deleteFromSet(uniqueUsers, username);
+
+          socket.to(room).emit("user:left", { user, reason: reason });
+        } else {
+          userCounts.set(username, newCount);
+        }
+
+        if (userCounts.size === 0) {
+          vaultUserCounts.delete(vaultId);
+          vaultUniqueUsers.delete(vaultId);
+        }
+      }
+
     });
 
     socket.on("error", (error) => {
       console.error(`Socket error for ${socket.data.user?.id}:`, error);
+       socket.disconnect(true);
     });
   });
 

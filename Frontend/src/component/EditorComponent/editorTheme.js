@@ -17,6 +17,7 @@ export const scribeDarkTheme = EditorView.theme({
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: "#3b82f6" },
   ".cm-selectionBackground, .cm-content ::selection": {
     backgroundColor: "#2563eb44",
+    color: "#34d399"
   },
 }, { dark: true });
 
