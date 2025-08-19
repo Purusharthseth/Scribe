@@ -6,65 +6,63 @@ import { indentWithTab } from '@codemirror/commands';
 import { Prec } from '@codemirror/state';
 import markdownCustomKeys from '../../utils/markdown-commands.js';
 import { scribeDarkTheme, scribeHighlightStyle } from './editorTheme.js';
-import { syntaxHighlighting } from "@codemirror/language";
+import { syntaxHighlighting } from '@codemirror/language';
+import { yCollab } from 'y-codemirror.next';
 
-const ICmd = markdownCustomKeys.find(cmd => cmd.key === "Mod-i");
+const ICmd = markdownCustomKeys.find(cmd => cmd.key === 'Mod-i');
 
-function Editor({ markdownText, setMarkdownText }) {
-  const editor = useRef(null);
-  const editorView = useRef(null);
+function Editor({ ytext, awareness, readOnly = false, hidden = false }) {
+  const editorEl = useRef(null);
+  const viewRef = useRef(null);
 
   useEffect(() => {
-    if (editor.current && !editorView.current) {
-      editorView.current = new EditorView({
-        doc: markdownText,
-        selection: {
-          anchor: markdownText.length,
-        },
-        extensions: [
-          basicSetup,
-          markdown(),
-          scribeDarkTheme,
-          syntaxHighlighting(scribeHighlightStyle),
-          Prec.highest(
-            keymap.of([
-              {
-                key: "Mod-i",
-                run: ICmd?.run || (() => false),
-                preventDefault: true
-              }
-            ])
-          ),
-          keymap.of([indentWithTab, ...markdownCustomKeys]),
-          EditorView.lineWrapping,
-          EditorView.updateListener.of((v) => {
-            if (v.docChanged) {
-              const text = v.state.doc.toString();
-              setMarkdownText(text);
-            }
-          }),
-        ],
-        parent: editor.current,
-      });
-    }
-  }, []);
-  
-  useEffect(() => {
-    if (editorView.current) {
-      const currentDoc = editorView.current.state.doc.toString();
-      if (markdownText !== currentDoc) {
-        editorView.current.dispatch({
-          changes: {
-            from: 0,
-            to: currentDoc.length,
-            insert: markdownText,
-          },
-        });
+    if (!editorEl.current || viewRef.current || !ytext) return;
+
+    viewRef.current = new EditorView({
+      doc: ytext.toString(),
+      parent: editorEl.current,
+      extensions: [
+        basicSetup,
+        markdown(),
+        scribeDarkTheme,
+        syntaxHighlighting(scribeHighlightStyle),
+
+        EditorView.editable.of(!readOnly),
+
+        Prec.highest(
+          keymap.of([
+            {
+              key: 'Mod-i',
+              run: ICmd?.run || (() => false),
+              preventDefault: true,
+            },
+          ])
+        ),
+        keymap.of([indentWithTab, ...markdownCustomKeys]),
+        EditorView.lineWrapping,
+
+        yCollab(ytext, awareness, {
+          // Use awareness field 'cursor' by default (what we set from CM focus)
+          // You can pass user info & color mapping later if you want named cursors.
+        }),
+      ],
+    });
+
+    return () => {
+      if (viewRef.current) {
+        try { viewRef.current.destroy(); } catch {}
+        viewRef.current = null;
       }
-    }
-  }, [markdownText]);
+    };
+  }, [ytext, readOnly, awareness]);
 
-  return <div className="editor h-full w-full overflow-auto" ref={editor}></div>;
+
+  return (
+    <div
+      ref={editorEl}
+      className="editor"
+    />
+  );
 }
 
 export default Editor;

@@ -1,41 +1,53 @@
 import parseMarkdown from '@/lib/markdown';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 function Preview({ markdownText, setMarkdownText }) {
+  const containerRef = useRef(null); //so hum ispe laga ske apna event listener
+  //without this we might grab old preview.
+  const textRef = useRef(markdownText);
   useEffect(() => {
-    const previewContainer = document.querySelector('.preview');
-    const checkboxes = previewContainer.querySelectorAll('input[type="checkbox"]');
+    textRef.current = markdownText;
+  }, [markdownText]);
 
-    checkboxes.forEach((checkbox, index) => {
-      checkbox.dataset.index = index;
-    });
+  const handleCheckboxChange = (e) => {
+    if (!e.target.matches('input[type="checkbox"]')) return;
 
-    const handleCheckboxChange = (e) => {
-      if (e.target.matches('input[type="checkbox"]')) {
-        const checkboxIndex = parseInt(e.target.dataset.index);
-        const lines = markdownText.split('\n');
-        let checkboxCount = 0;
+    const checkboxIndex = parseInt(e.target.dataset.index, 10);
+    const lines = (textRef.current || '').split('\n');
+    let checkboxCount = 0;
 
-        for (let i = 0; i < lines.length; i++) {
-          const match = lines[i].match(/^(\s*[-*] \[)( |x)(\])\s/);
-          if (match) {
-            if (checkboxCount === checkboxIndex) {
-              lines[i] = lines[i].replace(/\[.\]/, e.target.checked ? '[x]' : '[ ]');
-              setMarkdownText(lines.join('\n'));
-              break;
-            }
-            checkboxCount++;
-          }
+    for (let i = 0; i < lines.length; i++) {
+      const match = lines[i].match(/^(\s*[-*] \[)( |x)(\])\s/);
+      if (match) {
+        if (checkboxCount === checkboxIndex) {
+          lines[i] = lines[i].replace(/\[.\]/, e.target.checked ? '[x]' : '[ ]');
+          setMarkdownText(lines.join('\n'));
+          break;
         }
+        checkboxCount++;
       }
-    };
+    }
+  };
 
-    previewContainer.addEventListener('change', handleCheckboxChange);
-    return () => previewContainer.removeEventListener('change', handleCheckboxChange);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener('change', handleCheckboxChange);
+    return () => el.removeEventListener('change', handleCheckboxChange);
+  }, []);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const checkboxes = el.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach((checkbox, index) => {
+      checkbox.dataset.index = String(index);
+    });
   }, [markdownText]);
 
   return (
     <div
+      ref={containerRef}                              
       className="preview markdown-body h-full w-full overflow-auto pb-40 p-10"
       dangerouslySetInnerHTML={{ __html: parseMarkdown(markdownText) }}
     />

@@ -161,7 +161,7 @@ const setupSocket = (server) => {
   const ysocketio = new YSocketIO(io, {
     authenticate: async (handshake) => {
       const auth = handshake.auth || {};
-      const { token, vaultId, shareToken, fileId } = auth;
+      const { token, vaultId, fileId } = auth;
       if (!token || !vaultId || !fileId) return false;
 
       try {
@@ -169,18 +169,24 @@ const setupSocket = (server) => {
         const userId = claims?.sub;
         if (!userId) return false;
 
-        const whereClause = shareToken
-          ? or(
-              and(eq(vaults.id, vaultId), eq(vaults.owner_id, userId)),
-              and(eq(vaults.id, vaultId), eq(vaults.share_token, shareToken), ne(vaults.share_mode, "private"))
-            )
-          : and(eq(vaults.id, vaultId), eq(vaults.owner_id, userId));
 
-        const [vault] = await db.select().from(vaults).where(whereClause);
-        if (!vault) return false;
+        const [file] = await db
+          .select({ 
+            vault_id: files.vault_id,
+            vault_owner_id: vaults.owner_id,
+            vault_share_mode: vaults.share_mode
+          })
+          .from(files)
+          .innerJoin(vaults, eq(files.vault_id, vaults.id))
+          .where(eq(files.id, fileId))
+          .limit(1);
 
-        const isOwner = vault.owner_id === userId;
-        const canEdit = isOwner || vault.share_mode === "edit";
+        if (!file || file.vault_id !== vaultId) {
+          return false; 
+        }
+
+        const isOwner = file.vault_owner_id === userId;
+        const canEdit = isOwner || file.vault_share_mode === "edit";
         handshake.auth.__canEdit = canEdit;
         handshake.auth.__vaultId = vaultId;
         handshake.auth.__fileId = fileId;
