@@ -128,10 +128,19 @@ export const SocketProvider = ({ children, vaultId, shareToken }) => {
       });
 
       socketInstance.on('reconnect_failed', () => {
-        if (canToast()) toast.error('Failed to reconnect. Please refresh the page.');
+        setConnectionError('Max reconnection attempts reached');
+        if (canToast()) {
+          toast.error('Max reconnection attempts reached. Reloading page...', {
+            duration: 3000
+          });
+        }
+        setTimeout(() => {
+          if (typeof window !== 'undefined') {
+            window.location.reload();
+          }
+        }, 3000);
       });
 
-      // Custom application listeners
       const cleanupListeners = setupSocketListeners(socketInstance);
 
       socketInstance.connect();

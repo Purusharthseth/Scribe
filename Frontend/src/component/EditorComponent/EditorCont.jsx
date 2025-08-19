@@ -91,7 +91,7 @@ function EditorContainer({ vaultName }) {
       }
     };
     fetchFileContent();
-    setFileChanged(true);
+    setFileChanged(_ => true);
   }, [selectedFile?.id, shareTokenParam]);
 
   useEffect(() => {
@@ -102,7 +102,7 @@ function EditorContainer({ vaultName }) {
 
   useEffect(() => {
     if(fileChanged){
-      setFileChanged(false);
+      setFileChanged(_ => false);
       return;
     }
     if (selectedFile?.id) {
