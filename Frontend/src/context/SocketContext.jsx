@@ -68,6 +68,7 @@ export const SocketProvider = ({ children, vaultId, shareToken }) => {
         autoConnect: false,
         transports: ['websocket'],
         timeout: 10000,
+  forceNew: true,
         reconnection: true,
         reconnectionAttempts: maxReconnectAttempts,
         reconnectionDelay: 1000,
@@ -89,8 +90,9 @@ export const SocketProvider = ({ children, vaultId, shareToken }) => {
 
       socketInstance.on('disconnect', (reason) => {
         setIsConnected(false);
-        if (reason !== 'io client disconnect' && canToast()) {
-          toast.error(`Disconnected: ${reason}`);
+        if (reason !== 'io client disconnect') {
+          if (canToast()) toast.error(`Disconnected: ${reason}`);
+          if (typeof window !== 'undefined') window.location.reload();
         }
       });
 
@@ -118,12 +120,10 @@ export const SocketProvider = ({ children, vaultId, shareToken }) => {
       });
 
       socketInstance.on('reconnect_error', async (err) => {
-        if (err.message.includes('auth') && reconnectAttempts.current < maxReconnectAttempts) {
-          const newToken = await refreshToken();
-          if (newToken) {
-            socketInstance.auth.token = newToken;
-            reconnectAttempts.current += 1;
-          }
+        const newToken = await refreshToken();
+        if (newToken) {
+          socketInstance.auth.token = newToken;
+          reconnectAttempts.current += 1;
         }
       });
 
@@ -140,7 +140,6 @@ export const SocketProvider = ({ children, vaultId, shareToken }) => {
           }
         }, 3000);
       });
-
       const cleanupListeners = setupSocketListeners(socketInstance);
 
       socketInstance.connect();
@@ -173,6 +172,9 @@ export const SocketProvider = ({ children, vaultId, shareToken }) => {
     return () => {
       socketCleanup();
       if (socketRef.current) {
+        if (socketRef.current.io?.opts) {
+          socketRef.current.io.opts.reconnection = false;
+        }
         socketRef.current.off('connect');
         socketRef.current.off('disconnect');
         socketRef.current.off('connect_error');
