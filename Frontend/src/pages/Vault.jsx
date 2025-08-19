@@ -105,7 +105,7 @@ function VaultContent() {
   return (
     <Flex className="h-full w-full overflow-hidden">
       <Box className="shrink-0 min-w-[240px] w-[240px] h-full overflow-y-auto border-r border-[var(--gray-6)] bg-[var(--gray-2)] select-none">
-        <Tree className="h-full" vaultId={vaultId} fileTree={fileTree}/>
+        <Tree className="h-full" vaultId={vaultId} fileTree={fileTree} setFileTree={setFileTree}/>
       </Box>
 
       <Box flexGrow="1" className="h-full min-w-0">

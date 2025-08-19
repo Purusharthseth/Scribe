@@ -47,8 +47,7 @@ function isFileInsideFolder(data, fileId, folderId) {
   return parentPath ? parentPath.includes(folderId) : false;
 }
 
-function Tree({ vaultId, fileTree }) {
-  const [data, setData] = useState(fileTree);
+function Tree({ vaultId, fileTree, setFileTree }) {
   const axios = useAxios();
   const { socket } = useSocket();
   const selectedFile = useVaultStore((s) => s.selectedFile);
@@ -58,6 +57,41 @@ function Tree({ vaultId, fileTree }) {
   const shareToken = useVaultStore((s) => s.shareToken);
   const expandMany = useTreeStore((s) => s.expandMany);
   const initStore = useTreeStore((s) => s.init);
+
+  const getAllIds = useCallback((nodes) => {
+    const ids = new Set();
+    const traverse = (nodeList) => {
+      for (const node of nodeList) {
+        ids.add(node.id);
+        if (node.type === 'folder' && node.children) {
+          traverse(node.children);
+        }
+      }
+    };
+    traverse(nodes);
+    return ids;
+  }, []);
+
+  const validateTreeState = useCallback((treeData) => {
+    const allIds = getAllIds(treeData);
+    const treeStore = useTreeStore.getState();
+    const currId = treeStore.selectedId;
+    if (currId && !allIds.has(currId)) {
+      treeStore.select(null);
+    }
+    const currExpandedIds = treeStore.expandedIds;
+    if (currExpandedIds.size > 0) {
+      const validExpandedIds = new Set();
+      for (const id of currExpandedIds) {
+        if (allIds.has(id)) {
+          validExpandedIds.add(id);
+        }
+      }
+      useTreeStore.setState({ expandedIds: validExpandedIds });
+    }
+    if (selectedFile && !allIds.has(selectedFile.id)) setSelectedFile(null);
+    
+  }, [getAllIds, selectedFile, setSelectedFile]);
 
   const canEdit = isOwner || shareMode === 'edit';
   const shareTokenParam = (!isOwner && shareToken) ? `?shareToken=${shareToken}` : '';
@@ -83,7 +117,7 @@ function Tree({ vaultId, fileTree }) {
         headers: { "x-socket-id": socket?.id }
       });
       const newTree = res.data?.data?.file_tree || [];
-      setData(newTree);
+      setFileTree(newTree);
 
       if (parentId) {
         const ancestorIds = findAllAncestorIds(newTree, parentId);
@@ -114,7 +148,7 @@ function Tree({ vaultId, fileTree }) {
         headers: { "x-socket-id": socket?.id }
       });
       const newTree = res.data?.data?.file_tree || [];
-      setData(newTree);
+      setFileTree(newTree);
 
       if (parentId) {
         const ancestorIds = findAllAncestorIds(newTree, parentId);
@@ -155,7 +189,7 @@ function Tree({ vaultId, fileTree }) {
         });
       }
       const newTree = res.data?.data?.file_tree || [];
-      setData(newTree);
+      setFileTree(newTree);
       return true;
     } catch (e) {
       console.error("Failed to edit node:", e);
@@ -168,12 +202,10 @@ function Tree({ vaultId, fileTree }) {
 
   // ---- deleteNode ----
   const deleteNode = useCallback(async (nodeId, nodeType) => {
-    const currentData = data;
-
     const shouldClearSelectedFile =
       selectedFile &&
       ((nodeType === "file" && selectedFile.id === nodeId) ||
-       (nodeType === "folder" && isFileInsideFolder(currentData, selectedFile.id, nodeId)));
+       (nodeType === "folder" && isFileInsideFolder(fileTree, selectedFile.id, nodeId)));
 
     try {
       let res;
@@ -189,7 +221,7 @@ function Tree({ vaultId, fileTree }) {
         });
       }
       const newTree = res.data?.data?.file_tree || [];
-      setData(newTree);
+      setFileTree(newTree);
 
       if (shouldClearSelectedFile) {
         setSelectedFile(null);
@@ -201,11 +233,11 @@ function Tree({ vaultId, fileTree }) {
       console.error("Failed to delete node:", e);
       console.error("Error details:", e.response?.data);
     }
-  }, [axios, vaultId, data, selectedFile, setSelectedFile, shareTokenParam]);
+  }, [axios, vaultId, fileTree, selectedFile, setSelectedFile, shareTokenParam]);
 
   useEffect(() => {
-    setData(fileTree);
-  }, [fileTree]);
+    validateTreeState(fileTree);
+  }, [fileTree, validateTreeState]);
 
   useEffect(() => {
     initStore({ addNode, addFolder, editNode, deleteNode });
@@ -224,7 +256,7 @@ function Tree({ vaultId, fileTree }) {
                 const selectedId = useTreeStore.getState().selectedId;
                 const parentId = (() => {
                   if (!selectedId) return null;
-                  const temp = [...data];
+                  const temp = [...fileTree];
                   while (temp.length) {
                     const n = temp.pop();
                     if (n.id === selectedId) return n.type === 'folder' ? n.id : null;
@@ -242,7 +274,7 @@ function Tree({ vaultId, fileTree }) {
                 const selectedId = useTreeStore.getState().selectedId;
                 const parentId = (() => {
                   if (!selectedId) return null;
-                  const temp = [...data];
+                  const temp = [...fileTree];
                   while (temp.length) {
                     const n = temp.pop();
                     if (n.id === selectedId) return n.type === 'folder' ? n.id : null;
@@ -257,7 +289,7 @@ function Tree({ vaultId, fileTree }) {
         )}
       </Flex>
 
-      {data.map((node) => (
+      {fileTree.map((node) => (
         <Node key={node.id} obj={node} />
       ))}
     </Box>

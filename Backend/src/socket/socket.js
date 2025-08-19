@@ -1,22 +1,50 @@
-// setupSocket.js (Updated)
 import { Server } from "socket.io";
-import { vaults } from "../db/schema.js";
+import { YSocketIO } from "y-socket.io/dist/server";           
+import { vaults, files } from "../db/schema.js";
 import { and, eq, or, ne } from "drizzle-orm";
 import { clerkClient, verifyToken } from "@clerk/express";
 import db from "../db/drizzle.js";
+import { createDocSaver } from "./y-debounce.js"
 
 function userPayLoad(u) {
-  const fullName = [u?.firstName, u?.lastName].filter(Boolean).join(" ") || u?.username || "Unknown";
-  return {
-    username: u.username,
-    fullName,
-    avatarUrl: u.imageUrl || null,
-  };
+  return { username: u.username, fullName: u.fullName || "Unknown", avatarUrl: u.imageUrl || null };
 }
 
 function deleteFromSet(set, username) {
   const userToDelete = [...set].find(user => user.username === username);
   if (userToDelete) set.delete(userToDelete);
+}
+
+
+async function loadFileText(fileId) { 
+  try {
+    const rows = await db
+      .select({ content: files.content })
+      .from(files)
+      .where(eq(files.id, fileId))
+      .limit(1);
+    
+    return rows[0]?.content || "";
+  } catch (error) {
+    console.error(`[YJS] Failed to load file ${fileId}:`, error);
+    return "";
+  }
+}
+
+async function saveFileText(fileId, text) { 
+  try {
+    await db
+      .update(files)
+      .set({ 
+        content: text, 
+        updated_at: new Date() 
+      })
+      .where(eq(files.id, fileId));
+    
+    console.log(`[YJS] Saved file ${fileId} (${text.length} chars)`);
+  } catch (error) {
+    console.error(`[YJS] Failed to save file ${fileId}:`, error);
+  }
 }
 
 const setupSocket = (server) => {
@@ -36,20 +64,14 @@ const setupSocket = (server) => {
       const { token, vaultId, shareToken } = socket.handshake.auth || {};
       if (!token || !vaultId) return next(new Error("Missing authentication data"));
 
-      const claims = await verifyToken(token, {
-        secretKey: process.env.CLERK_SECRET_KEY,
-      });
+      const claims = await verifyToken(token, { secretKey: process.env.CLERK_SECRET_KEY });
       const userId = claims?.sub;
       if (!userId) return next(new Error("Invalid token"));
 
       const whereClause = shareToken
         ? or(
             and(eq(vaults.id, vaultId), eq(vaults.owner_id, userId)),
-            and(
-              eq(vaults.id, vaultId),
-              eq(vaults.share_token, shareToken),
-              ne(vaults.share_mode, "private")
-            )
+            and(eq(vaults.id, vaultId), eq(vaults.share_token, shareToken), ne(vaults.share_mode, "private"))
           )
         : and(eq(vaults.id, vaultId), eq(vaults.owner_id, userId));
 
@@ -78,7 +100,7 @@ const setupSocket = (server) => {
     const username = socket.data.user.username;
     const user = socket.data.user;
     const room = `vault:${vaultId}`;
-    
+
     socket.join(room);
 
     if (!vaultUserCounts.has(vaultId)) {
@@ -131,6 +153,111 @@ const setupSocket = (server) => {
       console.error(`Socket error for ${socket.data.user?.id}:`, error);
       socket.disconnect(true);
     });
+  });
+
+  const scheduleSave = createDocSaver();
+
+  // Create YSocketIO on top of your existing io
+  const ysocketio = new YSocketIO(io, {
+    authenticate: async (handshake) => {
+      const auth = handshake.auth || {};
+      const { token, vaultId, shareToken, fileId } = auth;
+      if (!token || !vaultId || !fileId) return false;
+
+      try {
+        const claims = await verifyToken(token, { secretKey: process.env.CLERK_SECRET_KEY });
+        const userId = claims?.sub;
+        if (!userId) return false;
+
+        const whereClause = shareToken
+          ? or(
+              and(eq(vaults.id, vaultId), eq(vaults.owner_id, userId)),
+              and(eq(vaults.id, vaultId), eq(vaults.share_token, shareToken), ne(vaults.share_mode, "private"))
+            )
+          : and(eq(vaults.id, vaultId), eq(vaults.owner_id, userId));
+
+        const [vault] = await db.select().from(vaults).where(whereClause);
+        if (!vault) return false;
+
+        const isOwner = vault.owner_id === userId;
+        const canEdit = isOwner || vault.share_mode === "edit";
+        handshake.auth.__canEdit = canEdit;
+        handshake.auth.__vaultId = vaultId;
+        handshake.auth.__fileId = fileId;
+
+        return true;
+      } catch {
+        return false;
+      }
+    },
+
+    gcEnabled: true,
+  });
+
+  ysocketio.initialize();
+
+  ysocketio.on("document-loaded", async (doc) => {
+    //doc main bas vohi doc aayega joh sab share kr re hoge uss file-id pe
+    const room = doc.name || ""; 
+    const match = room.match(/^file-(.+)$/);
+    const fileId = match?.[1];
+    if (!fileId) return;
+
+    const text = await loadFileText(fileId);
+    if (text) {
+      const ytext = doc.getText("codemirror");
+      if (ytext.length === 0) ytext.insert(0, text);
+    }
+  });
+
+  ysocketio.on("document-update", async (doc) => {
+    const room = doc.name || "";
+    const match = room.match(/^file-(.+)$/);
+    const fileId = match?.[1];
+    if (!fileId) return;
+
+    scheduleSave(room, async () => {
+      const ytext = doc.getText("codemirror");
+      await saveFileText(fileId, ytext.toString());
+    });
+  });
+
+  ysocketio.on("all-document-connections-closed", async (doc) => {
+  try {
+    const room = doc.name || "";
+    const match = room.match(/^file-(.+)$/);
+    const fileId = match?.[1];
+    if (!fileId) return;
+
+    const ytext = doc.getText("codemirror");
+    await saveFileText(fileId, ytext.toString());
+
+    ysocketio.documents.delete(doc.name);
+
+    console.log(`[Yjs] All users left ${room}. Saved and deleted from memory.`);
+  } catch (err) {
+    console.error("Error cleaning up doc:", err);
+  }
+});
+
+  const yjsNs = io.of(/^\/yjs\|.*/);
+  yjsNs.use((socket, next) => {
+    const { __canEdit } = socket.handshake.auth || {};
+    socket.data.canEdit = __canEdit;
+    next();
+  });
+  
+  yjsNs.on("connection", (socket) => {
+    if (!socket.data.canEdit) {
+      socket.use((packet, next) => {
+        const event = packet?.[0];
+        if (event !== "awareness") {
+          socket.emit("error", { message: "Tried to edit document but you have view-only access." });
+          return; 
+        }
+        next();
+      });
+    }
   });
 
   return io;
