@@ -38,19 +38,30 @@ function EditorContainer({ vaultName, vaultId }) {
   useEffect(() => {
     let cancelled = false;
     const cleanup = () => {
+      console.log("🧹 [YJS] Starting cleanup...");
+      
       const provider = providerRef.current;
       const ydoc = ydocRef.current;
       const ytext = ytextRef.current;
-      // const obs = yObserverRef.current;
+      const awareness = awarenessRef.current;
 
-      // if (ytext && obs) try { ytext.unobserve(obs); } catch {}
-      if (provider) try { provider.destroy(); } catch {}
-      if (ydoc) try { ydoc.destroy(); } catch {}
+      if (awareness) try { awareness.destroy(); } catch (e) {}
+
+      if (ytext) try { ytext.unobserveDeep(); } catch (e) {}
+
+
+      if (provider) try { provider.destroy(); } catch (e) {}
+      
+
+
+      if (ydoc) try { ydoc.destroy(); } catch (e) {}
+
       providerRef.current = null;
       ydocRef.current = null;
       ytextRef.current = null;
-      // yObserverRef.current = null;
       awarenessRef.current = null;
+      
+      console.log("🧹 [YJS] Cleanup completed");
     };
 
     (async () => {

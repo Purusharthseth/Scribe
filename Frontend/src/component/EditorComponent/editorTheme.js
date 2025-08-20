@@ -15,10 +15,19 @@ export const scribeDarkTheme = EditorView.theme({
     paddingBottom: "10rem",
   },
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: "#3b82f6" },
+
   ".cm-selectionBackground, .cm-content ::selection": {
-    backgroundColor: "#2563eb44",
-    color: "#34d399"
+    backgroundColor: "rgba(37, 99, 235, 0.20)"
   },
+
+  ".cm-activeLine": {
+    backgroundColor: "rgba(148, 163, 184, 0.08)" 
+  },
+
+  ".cm-activeLineGutter": {
+    backgroundColor: "transparent" 
+  },
+
 }, { dark: true });
 
 export const scribeHighlightStyle = HighlightStyle.define([

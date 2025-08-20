@@ -60,7 +60,7 @@ function Editor({ ytext, awareness, readOnly = false, hidden = false }) {
   return (
     <div
       ref={editorEl}
-      className="editor"
+      className="editor h-[100%] overflow-auto"
     />
   );
 }
