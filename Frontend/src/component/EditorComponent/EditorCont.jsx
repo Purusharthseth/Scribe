@@ -69,7 +69,17 @@ function EditorContainer({ vaultName, vaultId }) {
         WS_URL,
         room,
         ydoc,
-        { auth: { token, vaultId, fileId: selectedFile.id } }
+        { auth: { token, vaultId, fileId: selectedFile.id },
+          ioOptions: {
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 500,
+            reconnectionDelayMax: 5000,
+            randomizationFactor: 0.5,
+            transports: ['websocket']
+          }
+        },
+        
       );
 
       provider.on('status', ({ status }) => {
