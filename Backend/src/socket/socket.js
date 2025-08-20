@@ -208,11 +208,13 @@ const setupSocket = (server) => {
     const match = room.match(/^file-(.+)$/);
     const fileId = match?.[1];
     if (!fileId) return;
-
     const text = await loadFileText(fileId);
-    if (text) {
+    const meta= doc.getMap("meta");
+    if(meta['hydrated']) return;
+    if (!meta.get("hydrated") && text) {
       const ytext = doc.getText("codemirror");
       if (ytext.length === 0) ytext.insert(0, text);
+      meta.set("hydrated", true);
     }
   });
 

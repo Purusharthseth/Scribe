@@ -42,18 +42,7 @@ function EditorContainer({ vaultName, vaultId }) {
       
       const provider = providerRef.current;
       const ydoc = ydocRef.current;
-      const ytext = ytextRef.current;
-      const awareness = awarenessRef.current;
-
-      if (awareness) try { awareness.destroy(); } catch (e) {}
-
-      if (ytext) try { ytext.unobserveDeep(); } catch (e) {}
-
-
       if (provider) try { provider.destroy(); } catch (e) {}
-      
-
-
       if (ydoc) try { ydoc.destroy(); } catch (e) {}
 
       providerRef.current = null;

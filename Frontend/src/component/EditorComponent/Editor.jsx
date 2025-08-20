@@ -1,34 +1,106 @@
-import { useEffect, useRef } from 'react';
-import { EditorView, basicSetup } from 'codemirror';
+import { useEffect, useRef, useMemo } from 'react';
+import { EditorView } from 'codemirror';
 import { markdown } from '@codemirror/lang-markdown';
-import { keymap } from '@codemirror/view';
+import { keymap, lineNumbers, highlightActiveLine } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 import { Prec } from '@codemirror/state';
+import { bracketMatching, indentOnInput, syntaxHighlighting, foldGutter, foldKeymap } from '@codemirror/language';
+import {  } from '@codemirror/search';
+import { yCollab } from 'y-codemirror.next';
+import * as Y from 'yjs';
 import markdownCustomKeys from '../../utils/markdown-commands.js';
 import { scribeDarkTheme, scribeHighlightStyle } from './editorTheme.js';
-import { syntaxHighlighting } from '@codemirror/language';
-import { yCollab } from 'y-codemirror.next';
+import { useUser } from '@clerk/clerk-react';
 
-const ICmd = markdownCustomKeys.find(cmd => cmd.key === 'Mod-i');
+const ICmd = markdownCustomKeys.find((cmd) => cmd.key === 'Mod-i');
 
-function Editor({ ytext, awareness, readOnly = false, hidden = false }) {
+// Custom setup without history
+const customSetup = [
+  lineNumbers(),
+  foldGutter(),
+  indentOnInput(),
+  bracketMatching(),
+  highlightActiveLine(),
+];
+
+function randomColor() {
+  const palette = [
+  { color: '#30bced', light: '#30bced33' },
+  { color: '#6eeb83', light: '#6eeb8333' },
+  { color: '#ffbc42', light: '#ffbc4233' },
+  { color: '#ecd444', light: '#ecd44433' },
+  { color: '#ee6352', light: '#ee635233' },
+  { color: '#9ac2c9', light: '#9ac2c933' },
+  { color: '#8acb88', light: '#8acb8833' },
+  { color: '#1be7ff', light: '#1be7ff33' }];
+
+  return palette[Math.floor(Math.random() * palette.length)];
+}
+
+function Editor({ ytext, awareness }) {
   const editorEl = useRef(null);
   const viewRef = useRef(null);
+  const { user } = useUser();
+  const undoRef = useRef(null);
+  
+
+  const localUser = useMemo(() => {
+    const username = user?.username || `Anonymous${Math.random()*100}`;
+    const clr= randomColor();
+    return { name: username, color: clr.color, colorLight: clr.light };
+  }, [user]);
+
+  useEffect(() => {
+    if (!awareness) return; 
+    awareness.setLocalStateField('user', localUser);
+  }, [awareness, localUser]);
+  
 
   useEffect(() => {
     if (!editorEl.current || viewRef.current || !ytext) return;
+    if (!undoRef.current) {
+      undoRef.current = new Y.UndoManager(ytext, {
+        captureTimeout: 200,
+        trackedOrigins: new Set([user.username])
+      });
+    }
+      const yUndoKeymap = keymap.of([
+    {
+      key: "Mod-z",
+      preventDefault: true,
+      run: () => {
+        if (undoRef.current) { undoRef.current.undo(); return true; }
+        return false;
+      },
+    },
+    {
+      key: "Mod-Shift-z",
+      preventDefault: true,
+      run: () => {
+        if (undoRef.current) { undoRef.current.redo(); return true; }
+        return false;
+      },
+    },
+    {
+      key: "Mod-y", // Windows redo
+      preventDefault: true,
+      run: () => {
+        if (undoRef.current) { undoRef.current.redo(); return true; }
+        return false;
+      },
+    },
+  ]);
+
 
     viewRef.current = new EditorView({
       doc: ytext.toString(),
       parent: editorEl.current,
       extensions: [
-        basicSetup,
+        customSetup, 
         markdown(),
         scribeDarkTheme,
         syntaxHighlighting(scribeHighlightStyle),
-
-        EditorView.editable.of(!readOnly),
-
+        Prec.highest(yUndoKeymap),
         Prec.highest(
           keymap.of([
             {
@@ -40,29 +112,23 @@ function Editor({ ytext, awareness, readOnly = false, hidden = false }) {
         ),
         keymap.of([indentWithTab, ...markdownCustomKeys]),
         EditorView.lineWrapping,
-
-        yCollab(ytext, awareness, {
-          // Use awareness field 'cursor' by default (what we set from CM focus)
-          // You can pass user info & color mapping later if you want named cursors.
-        }),
+        yCollab(ytext, awareness, { undoManager: undoRef.current }),
       ],
     });
 
     return () => {
       if (viewRef.current) {
-        try { viewRef.current.destroy(); } catch {}
+        try { viewRef.current.destroy();} catch {}
         viewRef.current = null;
       }
+      if (undoRef.current) {
+        try { undoRef.current.destroy(); } catch {}
+        undoRef.current = null;
+      }
     };
-  }, [ytext, readOnly, awareness]);
+  }, [ytext, awareness]);
 
-
-  return (
-    <div
-      ref={editorEl}
-      className="editor h-[100%] overflow-auto"
-    />
-  );
+  return <div ref={editorEl} className="editor h-[100%] overflow-auto"  />;
 }
 
 export default Editor;
