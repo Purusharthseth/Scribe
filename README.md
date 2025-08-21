@@ -1,10 +1,28 @@
-# Scibre
+# SCRIBE
 
-
-Scribe is a collaborative, real-time Markdown-based note-taking app with a directory-based vault system, multi-cursor awareness, and CRDT-backed syncing.
+_Transform Ideas into Seamless Collaborative Masterpieces_
 
 ---
 
+## 🚀 Built with the tools and technologies:
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Express-black?style=for-the-badge&logo=express&logoColor=white" />
+  <img src="https://img.shields.io/badge/JSON-000000?style=for-the-badge&logo=json&logoColor=white" />
+  <img src="https://img.shields.io/badge/Markdown-000000?style=for-the-badge&logo=markdown&logoColor=white" />
+  <img src="https://img.shields.io/badge/Socket.io-black?style=for-the-badge&logo=socketdotio&logoColor=white" />
+  <img src="https://img.shields.io/badge/CodeMirror-red?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/npm-CB3837?style=for-the-badge&logo=npm&logoColor=white" />
+  <img src="https://img.shields.io/badge/.ENV-ecd53f?style=for-the-badge&logo=dotenv&logoColor=black" />
+  <br/>
+  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" />
+  <img src="https://img.shields.io/badge/Nodemon-76D04B?style=for-the-badge&logo=nodemon&logoColor=white" />
+  <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
+  <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" />
+  <img src="https://img.shields.io/badge/ESLint-4B32C3?style=for-the-badge&logo=eslint&logoColor=white" />
+  <img src="https://img.shields.io/badge/Axios-671ddf?style=for-the-badge" />
+</p>
 ## Features
 
 - **Live collaboration** (CRDT / Yjs) — conflict‑free merges across clients
