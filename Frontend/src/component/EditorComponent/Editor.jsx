@@ -4,13 +4,15 @@ import { markdown } from '@codemirror/lang-markdown';
 import { keymap, lineNumbers, highlightActiveLine } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 import { Prec } from '@codemirror/state';
-import { bracketMatching, indentOnInput, syntaxHighlighting, foldGutter, foldKeymap } from '@codemirror/language';
+import { bracketMatching, indentOnInput, foldGutter, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 import {  } from '@codemirror/search';
 import { yCollab } from 'y-codemirror.next';
 import * as Y from 'yjs';
 import markdownCustomKeys from '../../utils/markdown-commands.js';
-import { scribeDarkTheme, scribeHighlightStyle } from './editorTheme.js';
+import { scribeDarkTheme } from './editorTheme.js';
 import { useUser } from '@clerk/clerk-react';
+import { languages } from '@codemirror/language-data';
+import { oneDarkHighlightStyle } from '@codemirror/theme-one-dark';
 
 const ICmd = markdownCustomKeys.find((cmd) => cmd.key === 'Mod-i');
 
@@ -96,10 +98,10 @@ function Editor({ ytext, awareness }) {
       doc: ytext.toString(),
       parent: editorEl.current,
       extensions: [
+        markdown({ codeLanguages: languages }),
+        syntaxHighlighting(oneDarkHighlightStyle),
         customSetup, 
-        markdown(),
         scribeDarkTheme,
-        syntaxHighlighting(scribeHighlightStyle),
         Prec.highest(yUndoKeymap),
         Prec.highest(
           keymap.of([
