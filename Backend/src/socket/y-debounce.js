@@ -1,21 +1,40 @@
-export function createDocSaver() {
-  const timers = new Map(); 
-  const DEBOUNCE_MS = 2000;
+// y-debounce.js
+export function createDebouncedSaver(DEBOUNCE_MS = 2000) {
+  const timers = new Map(); // room -> { t: TimeoutID , fn: () =>{}}
 
-  return function schedule(room, fn) {
+  function schedule(room, fn) {
     let entry = timers.get(room);
-    if (!entry) { entry = { dirty: false, t: null }; timers.set(room, entry); }
-    entry.dirty = true;
-    if (entry.t) return;
+    if (!entry) {
+      entry = { t: null, fn: null };
+      timers.set(room, entry);
+    }
+    entry.fn = fn;
+
+    if (entry.t) clearTimeout(entry.t);
     entry.t = setTimeout(async () => {
-      try {
-        if (!entry.dirty) return;
-        entry.dirty = false;
-        await fn();
-      } finally {
-        clearTimeout(entry.t);
-        entry.t = null;
-      }
+      const toRun = entry.fn;
+      clearTimeout(entry.t);
+      entry.t = null;
+      entry.fn = null;
+      timers.delete(room);
+
+      if (toRun) await toRun();
     }, DEBOUNCE_MS);
-  };
+  }
+
+  function flushImmediate(room) {
+    const entry = timers.get(room);
+    if (!entry || !entry.fn) return false;
+
+    clearTimeout(entry.t);
+    const toRun = entry.fn;
+
+    entry.t = null;
+    entry.fn = null;
+    timers.delete(room);
+
+    return toRun();
+  }
+
+  return { schedule, flushImmediate };
 }

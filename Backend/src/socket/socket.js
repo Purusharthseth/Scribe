@@ -4,7 +4,7 @@ import { vaults, files } from "../db/schema.js";
 import { and, eq, or, ne } from "drizzle-orm";
 import { clerkClient, verifyToken } from "@clerk/express";
 import db from "../db/drizzle.js";
-import { createDocSaver } from "./y-debounce.js"
+import { createDebouncedSaver } from "./y-debounce.js"
 
 function userPayLoad(u) {
   return { username: u.username, fullName: u.fullName || "Unknown", avatarUrl: u.imageUrl || null };
@@ -58,6 +58,7 @@ const setupSocket = (server) => {
 
   const vaultUserCounts = new Map();
   const vaultUniqueUsers = new Map();
+  const docConnectionsCnt = new Map(); 
 
   io.use(async (socket, next) => {
     try {
@@ -155,7 +156,7 @@ const setupSocket = (server) => {
     });
   });
 
-  const scheduleSave = createDocSaver();
+  const scheduleSave = createDebouncedSaver();
 
   // Create YSocketIO on top of your existing io
   const ysocketio = new YSocketIO(io, {
@@ -208,12 +209,24 @@ const setupSocket = (server) => {
     const match = room.match(/^file-(.+)$/);
     const fileId = match?.[1];
     if (!fileId) return;
-    const text = await loadFileText(fileId);
-    const meta= doc.getMap("meta");
-    if(meta['hydrated']) return;
-    if (!meta.get("hydrated") && text) {
-      const ytext = doc.getText("codemirror");
-      if (ytext.length === 0) ytext.insert(0, text);
+
+    const currentConnections = docConnectionsCnt.get(room) || 0;
+    const isFirstConnection = currentConnections === 0;
+    docConnectionsCnt.set(room, currentConnections + 1);
+
+    console.log(`[YJS] Document loaded: ${room} (connections: ${currentConnections + 1}, first: ${isFirstConnection})`);
+
+    const meta = doc.getMap("meta");
+
+    if (isFirstConnection && !meta.get("hydrated")) {
+      const text = await loadFileText(fileId);
+      if (text) {
+        const ytext = doc.getText("codemirror");
+        if (ytext.length === 0) {
+          console.log(`[YJS] Hydrating ${room} with DB content (${text.length} chars)`);
+          ytext.insert(0, text);
+        }
+      }
       meta.set("hydrated", true);
     }
   });
@@ -224,7 +237,7 @@ const setupSocket = (server) => {
     const fileId = match?.[1];
     if (!fileId) return;
 
-    scheduleSave(room, async () => {
+    scheduleSave.schedule(room, async () => {
       const ytext = doc.getText("codemirror");
       await saveFileText(fileId, ytext.toString());
     });
@@ -237,12 +250,18 @@ const setupSocket = (server) => {
     const fileId = match?.[1];
     if (!fileId) return;
 
-    const ytext = doc.getText("codemirror");
-    await saveFileText(fileId, ytext.toString());
+    docConnectionsCnt.delete(room);
+
+    const pendingSave = scheduleSave.flushImmediate(room);
+    if (pendingSave) {
+      console.log(`[YJS] Flushing pending save for ${room} (had unsaved changes)`);
+      await pendingSave;
+    } else {
+      console.log(`[YJS] No pending changes for ${room}, skipping save on close`);
+    }
 
     ysocketio.documents.delete(doc.name);
-
-    console.log(`[Yjs] All users left ${room}. Saved and deleted from memory.`);
+    console.log(`[Yjs] All users left ${room}. Cleaned up from memory.`);
   } catch (err) {
     console.error("Error cleaning up doc:", err);
   }
@@ -266,6 +285,24 @@ const setupSocket = (server) => {
         next();
       });
     }
+
+    socket.on("disconnect", () => {
+      const nsName = socket.nsp.name;
+      const room = nsName.replace(/^\/yjs\|/, '');
+      
+      if (room.startsWith('file-')) {
+        const currentConnections = docConnectionsCnt.get(room) || 0;
+        const newConnections = Math.max(0, currentConnections - 1);
+        
+        if (newConnections === 0) {
+          docConnectionsCnt.delete(room);
+          console.log(`[YJS] Last connection to ${room} closed`);
+        } else {
+          docConnectionsCnt.set(room, newConnections);
+          console.log(`[YJS] Connection to ${room} closed (${newConnections} remaining)`);
+        }
+      }
+    });
   });
 
   return io;
