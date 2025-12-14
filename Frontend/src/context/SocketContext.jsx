@@ -85,7 +85,7 @@ export const SocketProvider = ({ children, vaultId, shareToken }) => {
         reconnectAttempts.current = 0;
         setIsConnected(true);
         setConnectionError(null);
-        if (canToast()) toast.success('Connected to real-time updates');
+        // if (canToast()) toast.success('Connected to real-time updates');
       });
 
       socketInstance.on('disconnect', (reason) => {

@@ -1,5 +1,11 @@
 import React from 'react'
 import { Container, Heading, Text, Button, Flex } from '@radix-ui/themes'
+import { 
+  SignedIn, 
+  SignedOut, 
+  SignUpButton
+} from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom'
 import {
   ArrowRightIcon,
   PersonIcon,
@@ -131,6 +137,12 @@ function CodeTeaser() {
 }
 
 function LandingPage() {
+  const navigate = useNavigate()
+
+  const handleGetStarted = () => {
+    navigate('/home')
+  }
+
   return (
     <div className="min-h-screen bg-[var(--gray-1)] text-[var(--gray-12)]">
       {/* Hero Section */}
@@ -178,14 +190,29 @@ function LandingPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-2 justify-center lg:justify-start">
-                <Button
-                  size="3"
-                  variant="solid"
-                  className="bg-[var(--accent-9)] hover:bg-[var(--accent-10)] text-white w-full sm:w-auto"
-                >
-                  Start Collaborating
-                  <ArrowRightIcon className="ml-2" />
-                </Button>
+                <SignedIn>
+                  <Button
+                    size="3"
+                    variant="solid"
+                    className="bg-[var(--accent-9)] hover:bg-[var(--accent-10)] text-white w-full sm:w-auto"
+                    onClick={handleGetStarted}
+                  >
+                    Get Started
+                    <ArrowRightIcon className="ml-2" />
+                  </Button>
+                </SignedIn>
+                <SignedOut>
+                  <SignUpButton>
+                    <Button 
+                      variant="solid" 
+                      size="3"
+                      className="bg-[var(--accent-9)] hover:bg-[var(--accent-10)] text-white w-full sm:w-auto"
+                    >
+                      Get Started
+                      <ArrowRightIcon className="ml-2" />
+                    </Button>
+                  </SignUpButton>
+                </SignedOut>
               </div>
 
               
